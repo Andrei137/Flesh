@@ -3,35 +3,35 @@
 #include<vector>
 
 // A singleton class that stores data regarding the instruction history 
-class historyManager
+class HistoryManager
 {
 public:
 	// Maximum number of instructions stored
-	static const int MAX_INSTR_CNT = 4096;
+	static const int m_MAX_INSTR_CNT = 4096;
 
 private:
-	// Instruction list, hard capped at MAX_INSTR_CNT instructions
+	// Instruction list, hard capped at m_MAX_INSTR_CNT instructions
 	// Stored as a circular buffer, where currInstr is the most recent one,
-	// (currInstr - 1 + MAX_INSTR_CNT) % MAX_INSTR_CNT is the second most recent,
+	// (m_currInstr - 1 + m_MAX_INSTR_CNT) % m_MAX_INSTR_CNT is the second most recent,
 	// ...
-	std::string history[MAX_INSTR_CNT];
+	std::string m_history[m_MAX_INSTR_CNT];
 
-	// Is the buffer full? (Can we loop around or do we stop at 0)
-	bool isFull;
-
-	// The most recent instruction. Check history and isFull for more info.
-	int currInstr;
+	// The most recent instruction. Check m_history and m_isFull for more info.
+	int m_currInstr;
 	
+	// Is the buffer full? (Can we loop around or do we stop at 0)
+	bool m_isFull;
+
 	// Loads the history. Is private to make the class a Singleton
-	historyManager();
+	HistoryManager();
 
 	// Saves the history. Is private to make the class a Singleton
-	~historyManager();
+	~HistoryManager();
 
 	// Loads the history from the disk
 	void load();
 
-	// Saves the history on the disk
+	// Saves the history to the disk
 	void save();
 
 public:
@@ -49,5 +49,5 @@ public:
 
 	// The class is a singleton thus we need a get method
 	// This is that method
-	historyManager& getHistory();
+	HistoryManager& getManager();
 };

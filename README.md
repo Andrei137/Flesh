@@ -50,6 +50,14 @@
 - Suspendarea unui program
     - [ ] Ctrl + Z
 
+- Sistemul de foldere
+    - [ ] Pwd
+    - [ ] Cd
+
+- Clear
+
+- Variabile de mediu
+
 ---
 
 ## Resurse
