@@ -2,7 +2,7 @@
 
 ---
 
-- Numele echipei: [Placeholder]
+- Numele echipei: Inner Shell
 - Grupa: 252
 - Membrii: Buzatu Giulian, Ilie Dumitru, Neculae Andrei-Fabian
 
