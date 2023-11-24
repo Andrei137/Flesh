@@ -1,8 +1,12 @@
 // Ilie Dumitru
+#ifndef FSL_HISTORYMANAGER_H
+#define FSL_HISTORYMANAGER_H
+
 #include<string>
 #include<vector>
 
 // A singleton class that stores data regarding the instruction history 
+// Will be updated soon to allow multiple instances of flesh to run at once without issues
 class HistoryManager
 {
 public:
@@ -28,14 +32,15 @@ private:
 	// Saves the history. Is private to make the class a Singleton
 	~HistoryManager();
 
-	// Loads the history from the disk
+	// Loads the history from the disk. Check implementation for more details
 	void load();
 
-	// Saves the history to the disk
+	// Saves the history to the disk. Check implementation for more details
 	void save();
 
 public:
-	// Adds the instruction in the memory
+	// Adds the instruction in the buffer.
+	// Should be called when an instruction was ran by the user
 	void addInstr(const std::string& instr);
 
 	// Get the instruction specified by the index.
@@ -45,9 +50,11 @@ public:
 	// getInstr(0) returns the most recent instruction,
 	// getInstr(1) returns the second most recent instruction,
 	// ...
-	std::string* getInstr(int index);
+	const std::string* getInstr(int index);
 
 	// The class is a singleton thus we need a get method
 	// This is that method
-	HistoryManager& getManager();
+	static HistoryManager& getManager();
 };
+
+#endif // FSL_HISTORYMANAGER_H

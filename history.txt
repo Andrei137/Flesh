@@ -1,0 +1,18 @@
+Test_0
+Test_1
+Test 2
+Test 3
+Super
+Ok, pare ca merge
+Mda, nu merge
+Shaizeman
+Welp
+Nice try, no worries
+Gl;hf
+git add .
+git commit -m "Am testat"
+lol jk
+(Toate astea sunt mesaje de test, nu am implementat inca in intregime Flesh, e doar un test pentru HistoryManager)
+Cred ca sunt suficiente linii.
+O sa scriu un main si o sa testez acum.
+Gl;hf!
