@@ -1,0 +1,5 @@
+{
+    "includes": [
+        "${PROJECT_SOURCE_DIR}/includes"
+    ]
+}

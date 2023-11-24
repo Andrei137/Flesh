@@ -2,8 +2,8 @@
 #ifndef FSL_HISTORYMANAGER_H
 #define FSL_HISTORYMANAGER_H
 
-#include<string>
-#include<vector>
+#include <string>
+#include <vector>
 
 // A singleton class that stores data regarding the instruction history 
 // Will be updated soon to allow multiple instances of flesh to run at once without issues
@@ -41,7 +41,7 @@ private:
 public:
 	// Adds the instruction in the buffer.
 	// Should be called when an instruction was ran by the user
-	void addInstr(const std::string& instr);
+	void addInstr(const std::string&);
 
 	// Get the instruction specified by the index.
 	// If the index exceeds MAX_INSTR_CNT then a nullptr is returned.
@@ -50,7 +50,7 @@ public:
 	// getInstr(0) returns the most recent instruction,
 	// getInstr(1) returns the second most recent instruction,
 	// ...
-	const std::string* getInstr(int index);
+	const std::string* getInstr(int);
 
 	// The class is a singleton thus we need a get method
 	// This is that method
