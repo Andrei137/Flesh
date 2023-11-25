@@ -61,6 +61,7 @@ void Interface::evaluateCommand(const std::string& a_command)
                 HistoryManager::getInstance().clearHistory();
                 std::cout << "Successfully cleared history\n";
                 HistoryManager::getInstance().addInstr(a_command);
+                std::cout << '\n';
                 return;
             }
 

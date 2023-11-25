@@ -90,7 +90,7 @@ const std::vector<std::string> HistoryManager::getInstrList(int a_number) const
 	// if the parameter is 0, return all the instructions
 	if (a_number == 0 || a_number > m_MAX_INSTR_CNT)
 	{
-		a_number = m_currInstr;
+		a_number = m_currInstr + 1;
 	}
 
 	std::vector<std::string> ret;
@@ -106,7 +106,7 @@ const std::vector<std::string> HistoryManager::getInstrList(int a_number) const
 // Clears the history
 void HistoryManager::clearHistory()
 {
-	this->m_currInstr = 0;
+	this->m_currInstr = -1;
 	this->m_isFull = false;
 
 	fs::remove("history.txt");

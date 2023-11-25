@@ -1,5 +1,5 @@
 # Set the paths relative to the script location
-project_dir="${dirname "${BASH_SOURCE[0]}"}"
+project_dir="$(dirname "${BASH_SOURCE[0]}")"
 cmakelists_file="${project_dir}/CMakeLists.txt"
 
 # Function to check if CMakeLists.txt has been modified
