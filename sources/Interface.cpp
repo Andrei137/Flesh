@@ -2,6 +2,8 @@
 
 #include "Interface.h"
 
+// \033[H moves the cursor to the top left corner of the screen
+// \033[J clears the screen from the cursor to the end of the screen
 #define clear() std::cout << "\033[H\033[J"
 
 bool Interface::m_aborted = false;
@@ -10,6 +12,7 @@ void Interface::ctrlCHandler(int a_signum)
 {
     static_cast<void>(a_signum); // to avoid warning
     m_aborted = true;
+    std::cout << '\n';
 
     // exit the program to simulate Ctrl + C
     // but this time, the HistoryManager's destructor will be called
@@ -38,7 +41,7 @@ void Interface::printLogo()
 
 void Interface::evaluateCommand(const std::string& a_command)
 {
-    // quit exists the program, but doesn't close the shell (unlike exit)
+    // quit exits the program, but doesn't close the shell (unlike exit)
     // mostly used for testing before solving Ctrl + C
     if (a_command == "quit")
     {

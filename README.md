@@ -8,6 +8,31 @@
 
 ---
 
+## Utilizare
+- Inainte de a rula, trebuie sa ne asiguram ca avem instalat cmake
+```bash
+sudo apt install cmake
+```
+
+- Daca se foloseste scriptul, este necesar sa ii dam drepturi de executie
+```bash
+chmod +x run.sh
+```
+
+1. Folosind scriptul run.sh
+```bash
+./run.sh
+```
+
+2. Manual
+```bash
+cmake .
+make
+./Flesh
+```
+
+---
+
 ## Cerinte
 
 - Istoric comenzi
