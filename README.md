@@ -91,6 +91,10 @@ make
     - [x] clear
     - [ ] help (optional)
 
+- Functionalitatea corecta a sagetilor
+    - [x] Up, Down -> Istoric comenzi
+    - [x] Left, Right -> Navigare cu cursorul
+
 - Variabile de mediu
 
 ---

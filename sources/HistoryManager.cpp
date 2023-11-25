@@ -54,6 +54,17 @@ void HistoryManager::save()
 	}
 }
 
+int HistoryManager::getInstrCount() const
+{
+	if (this->m_isFull)
+	{
+		return m_MAX_INSTR_CNT;
+	}
+
+	return this->m_currInstr;
+}
+
+
 // Add an instruction to the buffer.
 // Following the convention, this instruction is the most recent one, thus
 // it is at the m_currInstr position. For more info read getInstr

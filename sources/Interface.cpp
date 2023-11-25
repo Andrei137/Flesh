@@ -8,7 +8,100 @@
 
 bool Interface::m_aborted = false;
 
-void Interface::ctrlCHandler(int a_signum)
+void Interface::setNonBlocking()
+{
+    struct termios ttystate;
+
+    // get the current terminal state
+    tcgetattr(STDIN_FILENO, &ttystate);
+
+    // disable canonical mode so that input characters are immediately available
+    // disable echo so that characters such as the arrow keys aren't printed
+    // output has to be handled manually
+    ttystate.c_lflag &= ~(ICANON | ECHO);
+
+    // apply the new settings
+    tcsetattr(STDIN_FILENO, TCSANOW, &ttystate);
+}
+
+void Interface::refreshDisplay(const std::string& a_command, const std::string& a_path, int a_cursorPosition) 
+{
+    // move to the beginning of the line, printing the path and the command again
+    std::cout << "\r" << a_path << a_command << "\033[K";
+
+     // Move cursor to the correct position
+    std::cout << "\033[" << a_cursorPosition + a_path.size() + 1 << "G";
+
+    // Ensure that the output is printed immediately
+    std::cout.flush();
+}
+
+void Interface::handleArrowKeys(std::string &a_command, const std::string& a_path, char a_arrowKey, int& a_cursorPosition, int& a_historyPosition) 
+{
+    if (a_arrowKey == 'A') // Up Arrow pressed, move to the next command if possible
+    {
+        int currCount{ HistoryManager::getInstance().getInstrCount() };
+        if (a_historyPosition < currCount)
+        {
+            ++a_historyPosition;
+            a_command = *HistoryManager::getInstance().getInstr(a_historyPosition);
+        }
+        else if (a_historyPosition == currCount)
+        {
+            a_command = *HistoryManager::getInstance().getInstr(a_historyPosition);
+        }
+        else
+        {
+            a_command = "";
+        }
+        a_cursorPosition = static_cast<int>(a_command.size());
+        refreshDisplay(a_command, a_path, a_cursorPosition);
+    }
+    else if (a_arrowKey == 'B') // Down Arrow pressed, move to the previous command if possible
+    {
+        if (a_historyPosition > 0)
+        {
+            --a_historyPosition;
+            a_command = *HistoryManager::getInstance().getInstr(a_historyPosition);
+        }
+        else
+        {
+            a_historyPosition = -1;
+            a_command = "";
+        }
+        a_cursorPosition = static_cast<int>(a_command.size());
+        refreshDisplay(a_command, a_path, a_cursorPosition);
+    }
+    else if (a_arrowKey == 'C') // Right Arrow pressed, move cursor to the right if possible
+    {
+        if (a_cursorPosition < static_cast<int>(a_command.size())) 
+        {
+            ++a_cursorPosition;
+            refreshDisplay(a_command, a_path, a_cursorPosition);
+        }
+    }
+    else if (a_arrowKey == 'D') // Left Arrow pressed, move cursor to the left if possible
+    {
+        if (a_cursorPosition > 0) 
+        {
+            --a_cursorPosition;
+            refreshDisplay(a_command, a_path, a_cursorPosition);
+        }
+    }
+}
+
+// simulates backspace as it was disabled by setNonBlocking
+void Interface::handleBackspace(std::string &a_command, const std::string& a_path, int& a_cursorPosition) 
+{
+    if (a_cursorPosition > 0) 
+    {
+        a_command.erase(a_cursorPosition -1, 1);
+        --a_cursorPosition;
+        refreshDisplay(a_command, a_path, a_cursorPosition);
+    }
+}
+
+void Interface::handleCtrlC(int a_signum)
 {
     static_cast<void>(a_signum); // to avoid warning
     m_aborted = true;
@@ -19,6 +112,7 @@ void Interface::ctrlCHandler(int a_signum)
     exit(1);
 }
 
+// Not the food we deserved, but the food we needed
 void Interface::printLogo()
 {
     clear();
@@ -37,6 +131,52 @@ void Interface::printLogo()
     std::cout << "  -#@@@::#@@@%%@@%%%%*        \n";
     std::cout << "  .=-::*@@@@%%%#              \n";
     std::cout << "    @@@@%#                  \n\n";
+}
+
+// returns the command when the user presses enter
+// until then, the command can be modified in any way
+std::string Interface::getCommand(const std::string& a_path)
+{
+    std::string myCommand{};
+    int cursorPosition{ 0 };
+    int historyPosition{ -1 };
+
+    setNonBlocking();
+    refreshDisplay(myCommand, a_path, cursorPosition);
+
+    while (true)
+    {
+        char c;
+        if (read(STDIN_FILENO, &c, 1) > 0)
+        {
+            if (c == 27) // Check for escape character (ASCII value for escape)
+            {
+                // Arrow key detected; read the next two characters to identify the specific arrow key
+                if (read(STDIN_FILENO, &c, 1) > 0 && read(STDIN_FILENO, &c, 1) > 0)
+                {
+                    handleArrowKeys(myCommand, a_path, c, cursorPosition, historyPosition);
+                }
+            }
+            else if (c == 127) // Check for backspace
+            {
+                handleBackspace(myCommand, a_path, cursorPosition);
+            }
+            else if (c == '\n') // Finalize the command when the user presses enter
+            {
+                std::cout << '\n';
+                return myCommand;
+            }
+            else // Any other character is added to the command after the cursor
+            {
+                myCommand.insert(cursorPosition, 1, c);
+                ++cursorPosition;
+                refreshDisplay(myCommand, a_path, cursorPosition);
+            }
+        }
+    }
+
+    // Something went wrong, return an empty string
+    return "";
 }
 
 void Interface::evaluateCommand(const std::string& a_command)
@@ -79,7 +219,7 @@ void Interface::evaluateCommand(const std::string& a_command)
     {
         clear();
     }
-    else if (a_command == "pwd")
+    else if (a_command == "pwd" || a_command == "cd")
     {
         std::cout << fs::current_path() << '\n';
     }
@@ -127,12 +267,10 @@ void Interface::evaluateCommand(const std::string& a_command)
 void Interface::run()
 {
     printLogo();
-    signal(SIGINT, ctrlCHandler);
+    signal(SIGINT, handleCtrlC);
     while (!m_aborted)
     {
-        std::cout << fs::current_path().string() + ">";
-        std::string myCommand{};
-        std::getline(std::cin, myCommand);
+        std::string myCommand{ getCommand(fs::current_path().string() + ">") };
         evaluateCommand(myCommand);
     }
 }

@@ -44,6 +44,8 @@ private:
 	void save();
 
 public:
+	int getInstrCount() const;
+
 	// Adds the instruction in the buffer.
 	// Should be called when an instruction was ran by the user
 	void addInstr(const std::string&);
