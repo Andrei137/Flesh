@@ -5,10 +5,6 @@
 #include <fstream>
 #include <filesystem>
 
-// Typicaly bad practice to rename namespaces at global scope even if just in implementation
-// TODO Andrei, please remove
-namespace fs = std::filesystem;
-
 // Constructor. Loads the history from the disk
 HistoryManager::HistoryManager()
 {

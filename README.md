@@ -103,4 +103,6 @@ make
 
 - [Ascii Art Tool](https://www.asciiart.eu/image-to-ascii)
 - [Basic Signal Handling (pentru Ctrl + C)](https://www.gnu.org/software/libc/manual/html_node/Basic-Signal-Handling.html)
+- [CSI Sequences](https://en.m.wikipedia.org/wiki/ANSI_escape_code#CSI_sequences)
 - [Terminos (pentru functionalitatea sagetilor)](https://man7.org/linux/man-pages/man3/termios.3.html)
+- [Terminos syntax configuration with bitwise operators](https://stackoverflow.com/questions/48477989/termios-syntax-configuration-with-bitwise-operators)

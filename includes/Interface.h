@@ -12,20 +12,26 @@ class Interface
     // Checks if the user pressed Ctrl+C or typed quit or exit to exit the shell
     bool m_aborted;
 
+    // The path to the current directory
+    std::string m_path;
+
+    // The current command
+    std::string m_command;
+
     Interface();
     ~Interface() = default;
 
-    // Disables canonical mode and echo
-    void setNonBlocking();
+    // Disables canonical mode and echo or enables them back
+    int configTerminal(bool) const;
 
     // Refreshed the display when the user alters the current command
-    void refreshDisplay(const std::string&, const std::string&, int);
+    void refreshDisplay(int) const;
 
     // Handles the arrow keys' functionality
-    void handleArrowKeys(std::string&, const std::string&, char, int&, int&);
+    void handleArrowKeys(char, int&, int&);
 
     // Handles the backspace key's functionality
-    void handleBackspace(std::string&, const std::string&, int&);
+    void handleBackspace(int&);
 
     // Handles Ctrl + C's signal (SIGINT)
     // This function must be static as it is a generic handler
@@ -35,10 +41,10 @@ class Interface
     void printLogo();
 
     // When the user presses enter, the command is returned
-    std::string getCommand(const std::string&);
+    std::string getCommand();
 
     // Evaluates the command and acts accordingly
-    void evaluateCommand(const std::string&);
+    void evaluateCommand();
     
 public:
     // Runs the flesh
