@@ -103,3 +103,4 @@ make
 
 - [Ascii Art Tool](https://www.asciiart.eu/image-to-ascii)
 - [Basic Signal Handling (pentru Ctrl + C)](https://www.gnu.org/software/libc/manual/html_node/Basic-Signal-Handling.html)
+- [Terminos (pentru functionalitatea sagetilor)](https://man7.org/linux/man-pages/man3/termios.3.html)

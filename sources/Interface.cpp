@@ -8,28 +8,54 @@
 
 bool Interface::m_aborted = false;
 
+void Interface::setNonBlocking() 
+{
+    struct termios ttystate;
+    memset(&ttystate, 0, sizeof(ttystate));
+
+    // Get the current terminal state
+    if (tcgetattr(STDIN_FILENO, &ttystate) == -1) 
+    {
+        perror("Error getting terminal attributes");
+        return errno;
+    }
+
+    // Disable canonical mode so that input characters are immediately available
+    // Disable echo so that characters such as the arrow keys aren't printed
+    // Output has to be handled manually
+    ttystate.c_lflag &= ~(ICANON | ECHO);
+
+    // Apply the new settings
+    if (tcsetattr(STDIN_FILENO, TCSANOW, &ttystate) == -1) 
+    {
+        perror("Error setting terminal attributes");
+        return errno;
+    }
+}
+
+
 void Interface::setNonBlocking()
 {
     struct termios ttystate;
 
-    // get the current terminal state
+    // Get the current terminal state
     tcgetattr(STDIN_FILENO, &ttystate);
 
-    // disable canonical mode so that input characters are immediately available
-    // disable echo so that characters such as the arrow keys aren't printed
-    // output has to be handled manually
+    // Disable canonical mode so that input characters are immediately available
+    // Disable echo so that characters such as the arrow keys aren't printed
+    // Output has to be handled manually
     ttystate.c_lflag &= ~(ICANON | ECHO);
 
-    // apply the new settings
+    // Apply the new settings
     tcsetattr(STDIN_FILENO, TCSANOW, &ttystate);
 }
 
 void Interface::refreshDisplay(const std::string& a_command, const std::string& a_path, int a_cursorPosition) 
 {
-    // move to the beginning of the line, printing the path and the command again
+    // Move to the beginning of the line, printing the path and the command again
     std::cout << "\r" << a_path << a_command << "\033[K";
 
-     // Move cursor to the correct position
+    // Move cursor to the correct position
     std::cout << "\033[" << a_cursorPosition + a_path.size() + 1 << "G";
 
     // Ensure that the output is printed immediately
@@ -90,7 +116,7 @@ void Interface::handleArrowKeys(std::string &a_command, const std::string& a_pat
     }
 }
 
-// simulates backspace as it was disabled by setNonBlocking
+// Simulates backspace as it was disabled by setNonBlocking
 void Interface::handleBackspace(std::string &a_command, const std::string& a_path, int& a_cursorPosition) 
 {
     if (a_cursorPosition > 0) 
@@ -103,16 +129,18 @@ void Interface::handleBackspace(std::string &a_command, const std::string& a_pat
 
 void Interface::handleCtrlC(int a_signum)
 {
-    static_cast<void>(a_signum); // to avoid warning
+    static_cast<void>(a_signum); // To avoid warning
     m_aborted = true;
     std::cout << '\n';
 
-    // exit the program to simulate Ctrl + C
-    // but this time, the HistoryManager's destructor will be called
+    // Exit the program to simulate Ctrl + C
+    // But this time, the HistoryManager's destructor will be called
     exit(1);
 }
 
-// Not the food we deserved, but the food we needed
+// Mom can we have Cooked Porkchop?
+// We have Cooked Porkchop at home
+// Cooked Porkchop at home:
 void Interface::printLogo()
 {
     clear();
@@ -133,8 +161,8 @@ void Interface::printLogo()
     std::cout << "    @@@@%#                  \n\n";
 }
 
-// returns the command when the user presses enter
-// until then, the command can be modified in any way
+// Returns the command when the user presses enter
+// Until then, the command can be modified in any way
 std::string Interface::getCommand(const std::string& a_path)
 {
     std::string myCommand{};
@@ -181,8 +209,8 @@ std::string Interface::getCommand(const std::string& a_path)
 
 void Interface::evaluateCommand(const std::string& a_command)
 {
-    // quit exits the program, but doesn't close the shell (unlike exit)
-    // mostly used for testing before solving Ctrl + C
+    // Quit exits the program, but doesn't close the shell (unlike exit)
+    // Mostly used for testing before solving Ctrl + C
     if (a_command == "quit")
     {
         m_aborted = true;
@@ -195,20 +223,21 @@ void Interface::evaluateCommand(const std::string& a_command)
 
         if (a_command.length() > 9)
         {
-            // if the command is history -c, clear the history
+            // If the command is history -c, clear the history
             if (a_command[9] == 'c')
             {
                 HistoryManager::getInstance().clearHistory();
-                std::cout << "Successfully cleared history\n";
+                std::cout << "Successfully cleared history\n\n";
                 HistoryManager::getInstance().addInstr(a_command);
-                std::cout << '\n';
                 return;
             }
 
-            // if the command is history -number, print the last <number> commands
+            // If the command is history -number, print the last <number> commands
             number = std::stoi(a_command.substr(9, a_command.length() - 8));
         }
 
+        // If number is 0, print all the commands
+        // Else, print the last <number> commands
         std::vector<std::string> myHistory{ HistoryManager::getInstance().getInstrList(number) };
         for (const std::string& command : myHistory)
         {
@@ -227,7 +256,7 @@ void Interface::evaluateCommand(const std::string& a_command)
     {
         std::string directory = a_command.substr(3, a_command.length() - 3);
 
-        // checks if the directory is between quotes or has the last quote missing
+        // Checks if the directory is between quotes or has the last quote missing
         if (a_command[3] == '\"')
         {
             if (a_command[a_command.length() - 1] == '\"')
@@ -257,7 +286,7 @@ void Interface::evaluateCommand(const std::string& a_command)
 
     HistoryManager::getInstance().addInstr(a_command);
 
-    // for better visibility
+    // For better visibility
     if (a_command != "clear")
     {
         std::cout << '\n';

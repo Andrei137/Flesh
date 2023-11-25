@@ -62,7 +62,7 @@ public:
 	// Get the list of all instructions
 	const std::vector<std::string> getInstrList(int) const;
 
-	// clears both the vector and the file
+	// Clears both the vector and the file
 	void clearHistory();
 
 	// The class is a singleton thus we need a get method
