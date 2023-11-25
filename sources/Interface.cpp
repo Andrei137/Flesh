@@ -123,7 +123,7 @@ void Interface::evaluateCommand(const std::string& a_command)
 void Interface::run()
 {
     printLogo();
-    signal(SIGINT, ctrlCSignalHandler);
+    signal(SIGINT, ctrlCHandler);
     while (!m_aborted)
     {
         std::cout << fs::current_path().string() + ">";
