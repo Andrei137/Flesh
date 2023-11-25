@@ -17,7 +17,7 @@ void Interface::setNonBlocking()
     if (tcgetattr(STDIN_FILENO, &ttystate) == -1) 
     {
         perror("Error getting terminal attributes");
-        return errno;
+        return;
     }
 
     // Disable canonical mode so that input characters are immediately available
@@ -29,25 +29,8 @@ void Interface::setNonBlocking()
     if (tcsetattr(STDIN_FILENO, TCSANOW, &ttystate) == -1) 
     {
         perror("Error setting terminal attributes");
-        return errno;
+        return;
     }
-}
-
-
-void Interface::setNonBlocking()
-{
-    struct termios ttystate;
-
-    // Get the current terminal state
-    tcgetattr(STDIN_FILENO, &ttystate);
-
-    // Disable canonical mode so that input characters are immediately available
-    // Disable echo so that characters such as the arrow keys aren't printed
-    // Output has to be handled manually
-    ttystate.c_lflag &= ~(ICANON | ECHO);
-
-    // Apply the new settings
-    tcsetattr(STDIN_FILENO, TCSANOW, &ttystate);
 }
 
 void Interface::refreshDisplay(const std::string& a_command, const std::string& a_path, int a_cursorPosition) 

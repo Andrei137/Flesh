@@ -5,6 +5,7 @@
 
 #include "HistoryManager.h"
 #include <iostream>
+#include <cstring>
 #include <signal.h>
 #include <termios.h>
 #include <unistd.h>
