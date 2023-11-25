@@ -11,50 +11,60 @@
 ## Cerinte
 
 - Istoric comenzi
-    - [ ] pe disk, pentru a se salva chiar daca inchidem shell-ul
-    - [ ] limita de cativa MB
+    - [x] limita de cativa MB
+    - [x] pe disk, pentru a se salva chiar daca inchidem shell-ul
+    - [x] salvare pe disk in caz de Ctrl + C
+    - [ ] salvare pe disk in caz de kill
+    - Utilizare
+        - history        : afiseaza tot istoricul, inclusiv comenzile din sesiunile anterioare
+        - history -c     : sterge tot istoricul
+        - history -number: afiseaza ultimele [number] comenzi
 
-- Piping Operators
-    - [ ] '|'
+- Piping
+    - [ ] Operatorul |
         - Output-ul primei comenzi este input pentru a doua comanda
-        - Usage: cat logfile.txt | sort |  uniq -c
-    - [ ] '>'
-        - Redirectioneaza output-ul catre o fila txt (overwrite) 
-        - Usage: echo "Hello World!" > output.txt
-    - [ ] '>>'
-        - Redirectioneaza output-ul catre o fila txt (append)
-        - Usage: echo "Hello World!" > output.txt
-    - [ ] '<'
-        - Preia input-ul dintr-o fila txt
-        - Usage: sort < input.txt
+        - Utilizare: cat logfile.txt | sort | uniq -c
 
-- Expresii logice
-    - [ ] '&&'
+- Redirectionare
+    - [ ] Operatorul >
+        - Redirectioneaza output-ul catre o fila txt (overwrite) 
+        - Utilizare: echo "Hello World!" > output.txt
+    - [ ] Operatorul >>
+        - Redirectioneaza output-ul catre o fila txt (append)
+        - Utilizare: echo "Hello World!" > output.txt
+    - [ ] Operatorul <
+        - Preia input-ul dintr-o fila txt
+        - Utilizare: sort < input.txt
+
+- Operatori Logici
+    - [ ] Operatorul &&
         - Executa comanda urmatoare doar daca prima comanda a avut succes
-        - Usage: gcc test.cpp -o test && ./test
-    - [ ] '||'
+        - Utilizare: gcc test.cpp -o test && ./test
+    - [ ] Operatorul ||
         - Executa comanda urmatoare doar daca prima comanda a avut esec
-        - Usage: gcc test.cpp -o test || echo "Compilation failed"
-    - [ ] '!'
+        - Utilizare: gcc test.cpp -o test || echo "Compilation failed"
+    - [ ] Operatorul !
         - Inverseaza rezultatul comenzii
-        - Usage: if ! [ -e "test.txt" ]; then echo "File does not exist"; fi
+        - Utilizare: if ! [ -e "test.txt" ]; then echo "File does not exist"; fi
 
 - Control Flow
-    - [ ] ';'
-        - Permite executia mai multor comenzi pe aceeasi linie
-        - Usage: sleep 10; echo "Hello World!"
-    - [ ] '&'
+    - [ ] Separatorul ;
+        - Permite executia mai multor comenzi secvential
+        - Utilizare: sleep 10; echo "Hello World!"
+    - [ ] Separatorul '&'
         - Permite executia mai multor comenzi in background
-        - Usage: echo "Hello World 1!" & sleep 10 & echo "Hello World 2!"
-
-- Suspendarea unui program
+        - Utilizare: echo "Hello World 1!" & sleep 10 & echo "Hello World 2!"
     - [ ] Ctrl + Z
+        - Suspenda executia comenzii curente
 
 - Sistemul de foldere
-    - [ ] Pwd
-    - [ ] Cd
+    - [x] pwd
+    - [x] cd
 
-- Clear
+- Comenzi custom
+    - [x] quit 
+    - [x] clear
+    - [ ] help (optional)
 
 - Variabile de mediu
 
@@ -63,3 +73,4 @@
 ## Resurse
 
 - [Ascii Art Tool](https://www.asciiart.eu/image-to-ascii)
+- [Basic Signal Handling (pentru Ctrl + C)](https://www.gnu.org/software/libc/manual/html_node/Basic-Signal-Handling.html)

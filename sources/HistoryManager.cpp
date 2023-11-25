@@ -1,4 +1,6 @@
 // Ilie Dumitru
+// Neculae Andrei-Fabian
+
 #include "HistoryManager.h"
 #include <fstream>
 
@@ -66,7 +68,7 @@ void HistoryManager::addInstr(const std::string& a_instr)
 // m_currInstr is the index o the last instruction inserted, m_currInstr - 1 is
 // the second to last instruction ... . Keep in mind that the buffer is
 // circullar
-const std::string* HistoryManager::getInstr(int a_index)
+const std::string* HistoryManager::getInstr(int a_index) const
 {
 	if (a_index < 0 || a_index >= m_MAX_INSTR_CNT)
 	{
@@ -82,9 +84,37 @@ const std::string* HistoryManager::getInstr(int a_index)
 	return this->m_history + a_index;
 }
 
-// Get function for the singleton class HistoryManager
-HistoryManager& HistoryManager::getManager()
+// Returns a vector of std::string representing the last <a_number> instructions
+const std::vector<std::string> HistoryManager::getInstrList(int a_number) const
 {
-	static HistoryManager managr;
-	return managr;
+	// if the parameter is 0, return all the instructions
+	if (a_number == 0 || a_number > m_MAX_INSTR_CNT)
+	{
+		a_number = m_currInstr;
+	}
+
+	std::vector<std::string> ret;
+
+	for (int i = std::max(0, m_currInstr - a_number + 1); i <= m_currInstr; ++i)
+	{
+		ret.push_back(this->m_history[i]);
+	}
+
+	return ret;
+}
+
+// Clears the history
+void HistoryManager::clearHistory()
+{
+	this->m_currInstr = 0;
+	this->m_isFull = false;
+
+	fs::remove("history.txt");
+}
+
+// Get function for the singleton class HistoryManager
+HistoryManager& HistoryManager::getInstance()
+{
+	static HistoryManager myManager;
+	return myManager;
 }
