@@ -1,12 +1,20 @@
 // Neculae Andrei-Fabian
+// Ilie Dumitru (some refactoring)
 
 #include "Interface.h"
+#include "HistoryManager.h"
+#include <iostream>
+#include <signal.h>
+#include <cstring>
+#include <termios.h>
+#include <unistd.h>
+#include <filesystem>
 
 // \033[H moves the cursor to the top left corner of the screen
 // \033[J clears the screen from the cursor to the end of the screen
 #define clear() std::cout << "\033[H\033[J"
 
-bool Interface::m_aborted = false;
+Interface::Interface() : m_aborted(false) {}
 
 void Interface::setNonBlocking() 
 {
@@ -17,6 +25,7 @@ void Interface::setNonBlocking()
     if (tcgetattr(STDIN_FILENO, &ttystate) == -1) 
     {
         perror("Error getting terminal attributes");
+        // TODO return errno
         return;
     }
 
@@ -29,8 +38,11 @@ void Interface::setNonBlocking()
     if (tcsetattr(STDIN_FILENO, TCSANOW, &ttystate) == -1) 
     {
         perror("Error setting terminal attributes");
+        // TODO return errno
         return;
     }
+    
+    // TODO return 0
 }
 
 void Interface::refreshDisplay(const std::string& a_command, const std::string& a_path, int a_cursorPosition) 
@@ -45,23 +57,17 @@ void Interface::refreshDisplay(const std::string& a_command, const std::string& 
     std::cout.flush();
 }
 
-void Interface::handleArrowKeys(std::string &a_command, const std::string& a_path, char a_arrowKey, int& a_cursorPosition, int& a_historyPosition) 
+void Interface::handleArrowKeys(std::string &a_command, const std::string& a_path, char a_arrowKey, int& a_cursorPosition, int& a_historyPosition)
 {
     if (a_arrowKey == 'A') // Up Arrow pressed, move to the next command if possible
     {
-        int currCount{ HistoryManager::getInstance().getInstrCount() };
-        if (a_historyPosition < currCount)
+        const std::string* command = HistoryManager::getInstance().getInstr(a_historyPosition + 1);
+        
+        if (command != nullptr)
         {
+            // We didn't hit the history limit so just get that command
+            a_command = *command;
             ++a_historyPosition;
-            a_command = *HistoryManager::getInstance().getInstr(a_historyPosition);
-        }
-        else if (a_historyPosition == currCount)
-        {
-            a_command = *HistoryManager::getInstance().getInstr(a_historyPosition);
-        }
-        else
-        {
-            a_command = "";
         }
         a_cursorPosition = static_cast<int>(a_command.size());
         refreshDisplay(a_command, a_path, a_cursorPosition);
@@ -99,25 +105,24 @@ void Interface::handleArrowKeys(std::string &a_command, const std::string& a_pat
     }
 }
 
-// Simulates backspace as it was disabled by setNonBlocking
+// Simulates backspace (as it was disabled by setNonBlocking)
 void Interface::handleBackspace(std::string &a_command, const std::string& a_path, int& a_cursorPosition) 
 {
     if (a_cursorPosition > 0) 
     {
-        a_command.erase(a_cursorPosition -1, 1);
+        a_command.erase(a_cursorPosition - 1, 1);
         --a_cursorPosition;
         refreshDisplay(a_command, a_path, a_cursorPosition);
     }
 }
 
-void Interface::handleCtrlC(int a_signum)
+void Interface::handleCtrlC(int)
 {
-    static_cast<void>(a_signum); // To avoid warning
-    m_aborted = true;
+    getInstance().m_aborted = true;
     std::cout << '\n';
 
     // Exit the program to simulate Ctrl + C
-    // But this time, the HistoryManager's destructor will be called
+    // But this time, HistoryManager's destructor will be called
     exit(1);
 }
 
@@ -141,7 +146,8 @@ void Interface::printLogo()
     std::cout << "=@@@@==#%=:-*@@@@@@##%%#      \n";
     std::cout << "  -#@@@::#@@@%%@@%%%%*        \n";
     std::cout << "  .=-::*@@@@%%%#              \n";
-    std::cout << "    @@@@%#                  \n\n";
+    std::cout << "    @@@@%#                    \n";
+    std::cout << "                              \n";
 }
 
 // Returns the command when the user presses enter
@@ -160,14 +166,17 @@ std::string Interface::getCommand(const std::string& a_path)
         char c;
         if (read(STDIN_FILENO, &c, 1) > 0)
         {
+            // TODO Magic number
             if (c == 27) // Check for escape character (ASCII value for escape)
             {
+                // TODO Check if something other than ESC and {A, B, C, D} can be read
                 // Arrow key detected; read the next two characters to identify the specific arrow key
                 if (read(STDIN_FILENO, &c, 1) > 0 && read(STDIN_FILENO, &c, 1) > 0)
                 {
                     handleArrowKeys(myCommand, a_path, c, cursorPosition, historyPosition);
                 }
             }
+            // TODO Magic number
             else if (c == 127) // Check for backspace
             {
                 handleBackspace(myCommand, a_path, cursorPosition);
@@ -221,10 +230,17 @@ void Interface::evaluateCommand(const std::string& a_command)
 
         // If number is 0, print all the commands
         // Else, print the last <number> commands
-        std::vector<std::string> myHistory{ HistoryManager::getInstance().getInstrList(number) };
-        for (const std::string& command : myHistory)
+        if (number == 0)
         {
-            std::cout << command << '\n';
+            number = -1;
+        }
+        HistoryManager& managr = HistoryManager::getInstance();
+        const std::string* instr = managr.getInstr(0);
+        
+        for (int i{ 1 }; number && instr; ++i, --number)
+        {
+            std::cout << *instr << '\n';
+            instr = managr.getInstr(i);
         }
     }
     else if (a_command == "clear")
@@ -233,7 +249,7 @@ void Interface::evaluateCommand(const std::string& a_command)
     }
     else if (a_command == "pwd" || a_command == "cd")
     {
-        std::cout << fs::current_path() << '\n';
+        std::cout << std::filesystem::current_path() << '\n';
     }
     else if (a_command.substr(0, 2) == "cd")
     {
@@ -252,10 +268,10 @@ void Interface::evaluateCommand(const std::string& a_command)
             }
         }
 
-        fs::path newPath{ fs::current_path() / directory };
-        if (fs::exists(newPath))
+        std::filesystem::path newPath{ std::filesystem::current_path() / directory };
+        if (std::filesystem::exists(newPath))
         {
-            fs::current_path(newPath);
+            std::filesystem::current_path(newPath);
         }
         else
         {
@@ -282,7 +298,7 @@ void Interface::run()
     signal(SIGINT, handleCtrlC);
     while (!m_aborted)
     {
-        std::string myCommand{ getCommand(fs::current_path().string() + ">") };
+        std::string myCommand{ getCommand(std::filesystem::current_path().string() + ">") };
         evaluateCommand(myCommand);
     }
 }

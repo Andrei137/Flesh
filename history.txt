@@ -8,3 +8,23 @@ pwd
 history
 history -3
 pwd
+clear
+history
+quit
+test
+test
+test again
+history
+history -5
+test
+history
+pwd
+clear
+pwd
+clear
+history
+clear
+clear
+clear
+clear
+history

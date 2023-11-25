@@ -3,6 +3,11 @@
 
 #include "HistoryManager.h"
 #include <fstream>
+#include <filesystem>
+
+// Typicaly bad practice to rename namespaces at global scope even if just in implementation
+// TODO Andrei, please remove
+namespace fs = std::filesystem;
 
 // Constructor. Loads the history from the disk
 HistoryManager::HistoryManager()
@@ -54,17 +59,6 @@ void HistoryManager::save()
 	}
 }
 
-int HistoryManager::getInstrCount() const
-{
-	if (this->m_isFull)
-	{
-		return m_MAX_INSTR_CNT;
-	}
-
-	return this->m_currInstr;
-}
-
-
 // Add an instruction to the buffer.
 // Following the convention, this instruction is the most recent one, thus
 // it is at the m_currInstr position. For more info read getInstr
@@ -95,32 +89,13 @@ const std::string* HistoryManager::getInstr(int a_index) const
 	return this->m_history + a_index;
 }
 
-// Returns a vector of std::string representing the last <a_number> instructions
-const std::vector<std::string> HistoryManager::getInstrList(int a_number) const
-{
-	// if the parameter is 0, return all the instructions
-	if (a_number == 0 || a_number > m_MAX_INSTR_CNT)
-	{
-		a_number = m_currInstr + 1;
-	}
-
-	std::vector<std::string> ret;
-
-	for (int i = std::max(0, m_currInstr - a_number + 1); i <= m_currInstr; ++i)
-	{
-		ret.push_back(this->m_history[i]);
-	}
-
-	return ret;
-}
-
 // Clears the history
 void HistoryManager::clearHistory()
 {
 	this->m_currInstr = -1;
 	this->m_isFull = false;
 
-	fs::remove("history.txt");
+	std::filesystem::remove("history.txt");
 }
 
 // Get function for the singleton class HistoryManager

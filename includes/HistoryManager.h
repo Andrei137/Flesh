@@ -5,13 +5,9 @@
 #define FSL_HISTORYMANAGER_H
 
 #include <string>
-#include <vector>
-#include <filesystem>
-
-namespace fs = std::filesystem;
 
 // A singleton class that stores data regarding the instruction history 
-// Will be updated soon to allow multiple instances of flesh to run at once without issues
+// Will be updated soon to allow multiple instances of Flesh to run at once without issues
 class HistoryManager
 {
 public:
@@ -44,8 +40,6 @@ private:
 	void save();
 
 public:
-	int getInstrCount() const;
-
 	// Adds the instruction in the buffer.
 	// Should be called when an instruction was ran by the user
 	void addInstr(const std::string&);
@@ -58,9 +52,6 @@ public:
 	// getInstr(1) returns the second most recent instruction,
 	// ...
 	const std::string* getInstr(int) const;
-
-	// Get the list of all instructions
-	const std::vector<std::string> getInstrList(int) const;
 
 	// Clears both the vector and the file
 	void clearHistory();
