@@ -15,6 +15,9 @@ public:
 	static const int m_MAX_INSTR_CNT = 4096;
 
 private:
+	// The file where the history is stored
+	static std::string m_historyFileLocation;
+
 	// Instruction list, hard capped at m_MAX_INSTR_CNT instructions
 	// Stored as a circular buffer, where currInstr is the most recent one,
 	// (m_currInstr - 1 + m_MAX_INSTR_CNT) % m_MAX_INSTR_CNT is the second most recent,

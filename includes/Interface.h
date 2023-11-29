@@ -30,6 +30,9 @@ class Interface
     // Handles the arrow keys' functionality
     void handleArrowKeys(char, int&, int&);
 
+    // Handles the Ctrl + arrow keys' functionality
+    void handleCtrlArrowKeys(char, int&);
+
     // Handles the backspace key's functionality
     void handleBackspace(int&);
 

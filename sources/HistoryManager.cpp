@@ -5,9 +5,16 @@
 #include <fstream>
 #include <filesystem>
 
+std::string HistoryManager::m_historyFileLocation = "history.txt";
+
 // Constructor. Loads the history from the disk
 HistoryManager::HistoryManager()
 {
+	if (m_historyFileLocation == "history.txt")
+	{
+		std::filesystem::path myPath = std::filesystem::current_path();
+		m_historyFileLocation = myPath.string() + "/history.txt";
+	}
 	this->load();
 }
 
@@ -21,7 +28,7 @@ HistoryManager::~HistoryManager()
 // Currently the convention is that the last instruction read is the most recent
 void HistoryManager::load()
 {
-	std::ifstream in("history.txt");
+	std::ifstream in(m_historyFileLocation);
 	std::string str;
 	
 	for (this->m_currInstr = 0; getline(in, str, '\n'); this->m_isFull = !(this->m_currInstr = (this->m_currInstr + 1) % m_MAX_INSTR_CNT))
@@ -37,7 +44,7 @@ void HistoryManager::load()
 void HistoryManager::save()
 {
 	int i;
-	std::ofstream out("history.txt");
+	std::ofstream out(m_historyFileLocation);
 
 	if (this->m_isFull)
 	{
@@ -91,7 +98,7 @@ void HistoryManager::clearHistory()
 	this->m_currInstr = -1;
 	this->m_isFull = false;
 
-	std::filesystem::remove("history.txt");
+	std::filesystem::remove(m_historyFileLocation);
 }
 
 // Get function for the singleton class HistoryManager
