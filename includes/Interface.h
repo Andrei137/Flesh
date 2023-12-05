@@ -19,6 +19,10 @@ class Interface
     std::string m_command;
 
     Interface();
+    Interface(const Interface&) = delete;
+    Interface(Interface&&) = delete;
+    Interface& operator=(const Interface&) = delete;
+    Interface& operator=(Interface&&) = delete;
     ~Interface() = default;
 
     // Disables canonical mode and echo or enables them back

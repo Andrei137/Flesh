@@ -33,6 +33,11 @@ private:
 	// Loads the history. Is private to make the class a Singleton
 	HistoryManager();
 
+	HistoryManager(const HistoryManager&) = delete;
+	HistoryManager(HistoryManager&&) = delete;
+	HistoryManager& operator=(const HistoryManager&) = delete;
+	HistoryManager& operator=(HistoryManager&&) = delete;
+
 	// Saves the history. Is private to make the class a Singleton
 	~HistoryManager();
 
