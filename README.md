@@ -89,7 +89,10 @@ make
 
 - Functionalitatea corecta a sagetilor
     - [x] Up, Down -> Istoric comenzi
-    - [x] Left, Right -> Navigare cu cursorul
+    - [x] Left, Right -> Navigare prin caractere
+    
+    - [x] Ctrl + Left, Ctrl + Right -> Navigare prin cuvinte
+
 
 - Variabile de mediu
 
