@@ -45,6 +45,10 @@ make
         - history -c     : sterge tot istoricul
         - history -number: afiseaza ultimele [number] comenzi
 
+- Parsing input command
+    - [ ] obtinerea comenzii de la utilizator (partially done)
+    - [x] tokenizarea comenzii
+
 - Piping
     - [ ] Operatorul |
         - Output-ul primei comenzi este input pentru a doua comanda

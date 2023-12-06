@@ -3,6 +3,7 @@
 
 #include "HistoryManager.h"
 #include "Interface.h"
+#include "Tokenizer.h"
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
@@ -474,6 +475,12 @@ std::string Interface::getCommand()
 
 void Interface::evaluateCommand()
 {
+    // Obtaining the tokens
+    // No further usage atm
+    std::vector<std::string> tokens=Tokenizer::tokenize(this->m_command);
+    for(const std::string& token:tokens)
+        std::cerr<<token<<' '<<token.size()<<'\n';
+
     // Quit exits the program, but doesn't close the shell (unlike exit)
     // Mostly used for testing before solving Ctrl + C
     if (this->m_command == "quit" || this->m_command == "exit")
