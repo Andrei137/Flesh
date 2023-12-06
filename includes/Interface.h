@@ -17,6 +17,8 @@ class Interface
 
     // The current command
     std::string m_command;
+    
+    pid_t m_child_pid;
 
     Interface();
     Interface(const Interface&) = delete;
@@ -42,7 +44,15 @@ class Interface
 
     // Handles Ctrl + C's signal (SIGINT)
     // This function must be static as it is a generic handler
-    static void handleCtrlC(int);
+    static void handleSigInt(int);
+
+    // Handles Ctrl + \'s signal (SIGQUIT)
+    // This function must be static as it is a generic handler
+    static void handleSigQuit(int);
+
+    // Handles Ctrl + Z's signal (SIGTSTP)
+    // This function must be static as it is a generic handler
+    static void handleSigTstp(int);
 
     // Not the logo we deserved, but the logo we needed
     void printLogo();

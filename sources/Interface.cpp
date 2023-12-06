@@ -14,10 +14,15 @@
 #include <unistd.h>
 #include <vector>
 
+// OLD
 // \033[H moves the cursor to the top left corner of the screen
 // \033[J clears the screen from the cursor to the end of the screen
-#define clear() std::cout << "\033[H\033[J"
 
+// NEW
+// \033c clears the screen and moves the cursor to the top left corner of the screen
+#define clear() std::cout << "\033c"
+
+#define CTRL_D 4
 #define ESCAPE 27
 #define ONE 49
 #define FIVE 53
@@ -179,7 +184,6 @@ void Interface::handleCtrlArrowKeys(char a_arrowKey, int& a_cursorPosition)
     }
 }
 
-
 // Simulates backspace (as it was disabled by configTerminal)
 void Interface::handleBackspace(int& a_cursorPosition) 
 {
@@ -191,15 +195,43 @@ void Interface::handleBackspace(int& a_cursorPosition)
     }
 }
 
-void Interface::handleCtrlC(int)
+// Handles Ctrl + C's signal (SIGINT)
+// If the child process is still running, it is killed
+// Else, the program exits
+void Interface::handleSigInt(int)
 {
-    getInstance().m_aborted = true;
-    std::cout << '\n';
-    getInstance().configTerminal(false);
+    int status;
+    pid_t result = waitpid(Interface::getInstance().m_child_pid, &status, WNOHANG);
 
-    // Exit the program to simulate Ctrl + C
-    // But this time, HistoryManager's destructor will be called
-    exit(1);
+    if (result == 0)
+    {
+        kill(Interface::getInstance().m_child_pid, SIGKILL);
+    }
+    else
+    {
+        std::cout << "^C\n";
+        exit(0);
+    }
+}
+
+// Handles Ctrl + \'s signal (SIGQUIT)
+// The program exits no matter what
+void Interface::handleSigQuit(int)
+{
+    exit(0);
+}
+
+// Handles Ctrl + Z's signal (SIGTSTP)
+void Interface::handleSigTstp(int)
+{
+    int status;
+    pid_t result = waitpid(Interface::getInstance().m_child_pid, &status, WNOHANG);
+
+    if (result == 0)
+    {
+        std::cout << "\nStopped       " << Interface::getInstance().m_command << '\n';
+        kill(Interface::getInstance().m_child_pid, SIGKILL);
+    }
 }
 
 // Mom can we have Cooked Porkchop?
@@ -249,6 +281,15 @@ std::string Interface::getCommand()
         if (!changed)
         {
             c = getchar();
+        }
+        if (c == CTRL_D)
+        {
+            // The user pressed CTRL + D
+            // We need to exit the program
+            this->m_aborted = true;
+            configTerminal(false);
+            clear();
+            return "null_command";
         }
         // Check for escape sequence
         if (c == ESCAPE)
@@ -532,13 +573,13 @@ void Interface::evaluateCommand()
 
         // Creating a new process to run the command
         // So that the program doesn't exit after running the command
-        pid_t pid = fork();
-        if (pid == -1)
+        m_child_pid = fork();
+        if (m_child_pid == -1)
         {
             perror("Error forking");
             return;
         }
-        if (pid == 0)
+        if (m_child_pid == 0)
         {
             configTerminal(false);
             if (execvp(argv[0], argv) == -1)
@@ -566,8 +607,12 @@ void Interface::evaluateCommand()
 
 void Interface::run()
 {
+    signal(SIGINT, handleSigInt);
+    signal(SIGQUIT, handleSigQuit);
+    signal(SIGTSTP, handleSigTstp);
+
     printLogo();
-    signal(SIGINT, handleCtrlC);
+    
     while (!this->m_aborted)
     {
         this->m_path = std::filesystem::current_path().string() + ">";

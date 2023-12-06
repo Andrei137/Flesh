@@ -68,9 +68,6 @@ make
     - [ ] Operatorul ||
         - Executa comanda urmatoare doar daca prima comanda a avut esec
         - Utilizare: gcc test.cpp -o test || echo "Compilation failed"
-    - [ ] Operatorul !
-        - Inverseaza rezultatul comenzii
-        - Utilizare: if ! [ -e "test.txt" ]; then echo "File does not exist"; fi
 
 - Control Flow
     - [ ] Separatorul ;
@@ -89,7 +86,6 @@ make
 - Comenzi custom
     - [x] quit 
     - [x] clear
-    - [ ] help (optional)
 
 - Functionalitatea corecta a sagetilor
     - [x] Up, Down -> Istoric comenzi
