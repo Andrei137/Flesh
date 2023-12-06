@@ -76,8 +76,6 @@ make
     - [ ] Separatorul '&'
         - Permite executia mai multor comenzi in background
         - Utilizare: echo "Hello World 1!" & sleep 10 & echo "Hello World 2!"
-    - [ ] Ctrl + Z
-        - Suspenda executia comenzii curente
 
 - Sistemul de foldere
     - [x] pwd
@@ -89,7 +87,18 @@ make
 
 - Functionalitatea corecta a sagetilor
     - [x] Up, Down -> Istoric comenzi
-    - [x] Left, Right -> Navigare cu cursorul
+    - [x] Left, Right -> Navigare prin litere
+    - [x] Ctrl + Up, Ctrl + Down -> Navigare prin cuvinte 
+
+- Ctrl Signals
+    - [x] Ctrl + C (SIGINT)
+          - Anuleaza executia comanda curenta
+    - [x] Ctrl + Z (SIGTSTP)
+          - Suspenda executia comenzii curente
+    - [x] Ctrl + \ (SIGQUIT)
+          - Inchide Flesh
+    - [x] Ctrl + D
+          - Inchide Flesh
 
 - Variabile de mediu
 
