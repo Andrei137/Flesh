@@ -5,6 +5,7 @@
 #define FSL_HISTORYMANAGER_H
 
 #include <string>
+#include <fstream>
 
 // A singleton class that stores data regarding the instruction history 
 // Will be updated soon to allow multiple instances of Flesh to run at once without issues
@@ -30,15 +31,26 @@ private:
 	// Is the buffer full? (Can we loop around or do we stop at 0)
 	bool m_isFull;
 
+	// Has the history finished loading?
+	bool m_isLoaded;
+
+	// We use this to save the history at every instruction added to the history.
+	// To do this we are flushing the command to the stream every time.
+	// Instead of openning the stream for appending every time we just keep it open.
+	std::ofstream m_output;
+
 	// Loads the history. Is private to make the class a Singleton
 	HistoryManager();
 
+	// The HistoryManager class is a singleton, thus we need to delete the copy and
+	// move constructors and assignment operators
 	HistoryManager(const HistoryManager&) = delete;
 	HistoryManager(HistoryManager&&) = delete;
 	HistoryManager& operator=(const HistoryManager&) = delete;
 	HistoryManager& operator=(HistoryManager&&) = delete;
 
-	// Saves the history. Is private to make the class a Singleton
+	// Saves the final history. It was private initially to disallow deletion,
+	// thus keeping the class a Singleton but can safely be made public now.
 	~HistoryManager();
 
 	// Loads the history from the disk. Check implementation for more details

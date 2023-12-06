@@ -635,13 +635,6 @@ void Interface::run()
     while (!this->m_aborted)
     {
         this->m_path = std::filesystem::current_path().string() + ">";
-
-        // Remove /mnt/ from the path
-        this->m_path = this->m_path.substr(5, this->m_path.length() - 5);
-
-        // Make the first letter big
-        this->m_path[0] = toupper(this->m_path[0]);
-
         this->m_command = getCommand();
         evaluateCommand();
     }
