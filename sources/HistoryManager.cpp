@@ -2,7 +2,6 @@
 // Neculae Andrei-Fabian
 
 #include "HistoryManager.h"
-#include <fstream>
 #include <filesystem>
 
 std::string HistoryManager::m_historyFileLocation = "history.txt";
@@ -31,12 +30,15 @@ void HistoryManager::load()
 	std::ifstream in(m_historyFileLocation);
 	std::string str;
 	
-	for (this->m_currInstr = 0; getline(in, str, '\n'); this->m_isFull = !(this->m_currInstr = (this->m_currInstr + 1) % m_MAX_INSTR_CNT))
+	this->m_isLoaded = false;
+
+	for (this->m_currInstr = -1; getline(in, str, '\n'); )
 	{
-		this->m_history[this->m_currInstr] = str;
+		this->addInstr(str);
 	}
 
-	this->m_currInstr = (this->m_currInstr - 1 + m_MAX_INSTR_CNT) % m_MAX_INSTR_CNT;
+	this->m_isLoaded = true;
+	this->save();
 }
 
 // Save the memory to the disk
@@ -44,22 +46,27 @@ void HistoryManager::load()
 void HistoryManager::save()
 {
 	int i;
-	std::ofstream out(m_historyFileLocation);
+	
+	this->m_output = std::ofstream(HistoryManager::m_historyFileLocation);
 
 	if (this->m_isFull)
 	{
 		for (i = (this->m_currInstr + 1) % m_MAX_INSTR_CNT; i != this->m_currInstr; i = (i + 1) % m_MAX_INSTR_CNT)
 		{
-			out << this->m_history[i] << '\n';
+			this->m_output << this->m_history[i] << '\n';
 		}
+		// This command was not printed before as we start from + 1
+		this->m_output << this->m_history[i] << '\n';
 	}
 	else
 	{
 		for (i = 0; i <= this->m_currInstr; ++i)
 		{
-			out << this->m_history[i] << '\n';
+			this->m_output << this->m_history[i] << '\n';
 		}
 	}
+
+	this->m_output << std::flush;
 }
 
 // Add an instruction to the buffer.
@@ -67,8 +74,38 @@ void HistoryManager::save()
 // it is at the m_currInstr position. For more info read getInstr
 void HistoryManager::addInstr(const std::string& a_instr)
 {
+	bool shouldRefresh = false;
+
+	if (this->m_currInstr + 1 == m_MAX_INSTR_CNT)
+	{
+		// If we have at least 2 * m_MAX_INSTR_CNT commands in the history
+		// save file then we do a cleanup. This has 2 effects.
+		// 1. It is unlikely to ever use a command so old.
+		// 2. It does not allow the file to get too big in size (although it is
+		// still possible)
+		if (this->m_isFull)
+		{
+			shouldRefresh = true;
+		}
+		else
+		{
+			this->m_isFull = true;
+		}
+	}
 	this->m_currInstr = (this->m_currInstr + 1) % m_MAX_INSTR_CNT;
 	this->m_history[this->m_currInstr] = a_instr;
+
+	if (this->m_isLoaded)
+	{
+		if (shouldRefresh)
+		{
+			this->save();
+		}
+		else
+		{
+			this->m_output << a_instr << '\n' << std::flush;
+		}
+	}
 }
 
 // Returns a const std::string pointer pointing to the std::string representing
@@ -98,7 +135,7 @@ void HistoryManager::clearHistory()
 	this->m_currInstr = -1;
 	this->m_isFull = false;
 
-	std::filesystem::remove(m_historyFileLocation);
+	this->m_output = std::ofstream(HistoryManager::m_historyFileLocation);
 }
 
 // Get function for the singleton class HistoryManager
