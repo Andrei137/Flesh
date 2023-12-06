@@ -200,16 +200,21 @@ void Interface::handleBackspace(int& a_cursorPosition)
 // Else, the program exits
 void Interface::handleSigInt(int)
 {
-    int status;
-    pid_t result = waitpid(Interface::getInstance().m_child_pid, &status, WNOHANG);
+    Interface& interface{ Interface::getInstance() };
+
+    int status{};
+    pid_t result = waitpid(interface.m_child_pid, &status, WNOHANG);
+
 
     if (result == 0)
     {
-        kill(Interface::getInstance().m_child_pid, SIGKILL);
+        kill(interface.m_child_pid, SIGKILL);
     }
     else
     {
         std::cout << "^C\n";
+        interface.m_aborted = true;
+        interface.configTerminal(false);
         exit(0);
     }
 }
@@ -218,6 +223,10 @@ void Interface::handleSigInt(int)
 // The program exits no matter what
 void Interface::handleSigQuit(int)
 {
+    Interface& interface{ Interface::getInstance() };
+    interface.m_aborted = true;
+    interface.configTerminal(false);
+    clear();
     exit(0);
 }
 
@@ -516,7 +525,10 @@ void Interface::evaluateCommand()
     }
     else if (this->m_command == "pwd" || this->m_command == "cd")
     {
-        std::cout << std::filesystem::current_path() << '\n';
+        std::string directory{ std::filesystem::current_path().string() };
+        directory = directory.substr(5, directory.length() - 5);
+        directory[0] = toupper(directory[0]);
+        std::cout << directory << '\n';
     }
     else if (this->m_command.substr(0, 2) == "cd")
     {
