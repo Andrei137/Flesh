@@ -522,17 +522,16 @@ void Interface::evaluateCommand()
 
         // If number is 0, print all the commands
         // Else, print the last <number> commands
-        if (number == 0)
-        {
-            number = -1;
-        }
         HistoryManager& manager = HistoryManager::getInstance();
-        const std::string* instr = manager.getInstr(0);
-        
-        for (int i = 1; number && instr; ++i, --number)
+        int numberElements{ HistoryManager::getInstance().getInstrCount() };
+        if (number == 0 || number > numberElements)
         {
-            std::cout << *instr << '\n';
-            instr = manager.getInstr(i);
+            number = numberElements;
+        }
+
+        for ( --number; number > -1; --number)
+        {
+            std::cout << *manager.getInstr(number) << '\n';
         }
     }
     else if (this->m_command == "clear")
