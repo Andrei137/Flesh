@@ -79,6 +79,9 @@ public:
 	// The class is a singleton thus we need a get method
 	// This is that method
 	static HistoryManager& getInstance();
+
+	// The number of currently stored instructions
+	int getInstrCount() const;
 };
 
 #endif // FSL_HISTORYMANAGER_H

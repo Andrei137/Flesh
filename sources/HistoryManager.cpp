@@ -144,3 +144,13 @@ HistoryManager& HistoryManager::getInstance()
 	static HistoryManager myManager;
 	return myManager;
 }
+
+// The number of currently stored instructions
+int HistoryManager::getInstrCount() const
+{
+	if (this->m_isFull)
+	{
+		return m_MAX_INSTR_CNT;
+	}
+	return this->m_currInstr + 1;
+}

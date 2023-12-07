@@ -505,6 +505,16 @@ void Interface::evaluateCommand()
                 HistoryManager::getInstance().addInstr(this->m_command);
                 return;
             }
+	    // For testing, -n outputs the count of elements
+	    else if (this->m_command[9] == 'n')
+	    {
+                int numberElements{ HistoryManager::getInstance().getInstrCount() };
+		
+		std::cout << "Number of stored commands is " << numberElements << '\n';
+                HistoryManager::getInstance().addInstr(this->m_command);
+
+                return;
+	    }
 
             // If the command is history -number, print the last <number> commands
             number = std::stoi(this->m_command.substr(9, this->m_command.length() - 8));
