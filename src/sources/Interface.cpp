@@ -1,6 +1,7 @@
 // Ilie Dumitru (some refactoring)
 // Neculae Andrei-Fabian (TODOs)
 
+#include "Color.h"
 #include "HistoryManager.h"
 #include "Interface.h"
 #include "Tokenizer.h"
@@ -241,22 +242,50 @@ void Interface::handle_sig_tstp(int)
 void Interface::print_logo()
 {
     clear();
-    std::cout << "                .--*#+                            \n";
-    std::cout << "            .==+#*#@@%                            \n";
-    std::cout << "          =#%%%%#=-=*@@%                          \n";
-    std::cout << "        ..-@@-.-+%@@@*+@%..+%*                    \n";
-    std::cout << "        :@#-:=#@@%+-=*#%#=+@@*                    \n";
-    std::cout << "      -##*=-+@@+-+**+::+#%@%%=                    \n";
-    std::cout << "    .==::=#@@*==*%%*=::%@@@*                      \n";
-    std::cout << "  .===-.-%%+-.-@@+=+#@@@@@                        \n";
-    std::cout << ".-=++:-%@%*-=*#*+=++#@@#+##=                      \n";
-    std::cout << ".++::@@*+=*@@@*:-%@*+*#*##%+                      \n";
-    std::cout << ".-==*@%-:=++=-+%@##@@@@@@#                        \n";
-    std::cout << "=@@@@==#%=:-*@@@@@@##%%____ __    ____ ____ __ __ \n";
-    std::cout << "  -#@@@::#@@@%%@@%%%%*/ __// /   / __// __// // / \n";
-    std::cout << "  .=-::*@@@@%%%#     / _/ / /__ / _/ _\\ \\ / _  /\n";
-    std::cout << "    @@@@%#          /_/  /____//___//___//_//_/   \n";
-    std::cout << "                                                  \n";
+    const std::string flesh_logo
+    {
+         "                .--###                            \n"
+         "            .==+#*#@@#                            \n"
+         "          =#@@%@@=-=*@@#                          \n"
+         "        ..-@@-.-+%@@@*+@%..+%#                    \n"
+         "        :@#-:=#@@%+-=*#%#=+@@=                    \n"
+         "      -##*=-+@@+-+**+::+#%%@@=                    \n"
+         "    .==::=#@@*==*%%*=::%@@@*                      \n"
+         "  .===-.-%++-.-@@+=+#@@@@@                        \n"
+         ".-=++:-%@-*-=*#*+=++#@@#+##=                      \n"
+         ".++::@@*+=*%@@*:-%@*+*#*##%+                      \n"
+         ".-==*@%-:=++=-+%@##@@@@@@#                        \n"
+         "=@@@@==#%=:-*@@@@@@####____ __    ____ ____ __ __ \n"
+         "  -#@@@::#@@@%%@@####*/ __// /   / __// __// // / \n"
+         "  .=-::*@@@@####     / _/ / /__ / _/ _\\ \\ / _  /\n"
+         "    @@@@##          /_/  /____//___//___//_//_/   \n"
+         "                                                  \n"
+    };
+    for (auto ch : flesh_logo)
+    {
+        std::cout << Color::BG_DEFAULT;
+        if (ch == '%')
+        {
+            std::cout << Color::GREEN << ch;
+        }
+        else if (ch == '#' || ch == '.')
+        {
+            std::cout << Color::DARK_GRAY << ch;
+        }
+        else if (ch == '+' || ch == '*')
+        {
+            std::cout << Color::LIGHT_RED << ch;
+        }
+        else if (ch == '@' || ch == '=' || ch == '-' || ch == ':')
+        {
+            std::cout << Color::RED << ch;
+        }
+        else
+        {
+            std::cout << Color::MAGENTA << ch;
+        }
+    }
+    std::cout << Color::DEFAULT;
 }
 
 // Returns the command when the user presses enter
@@ -290,7 +319,7 @@ std::string Interface::get_command()
             this->m_aborted = true;
             config_terminal(false);
             clear();
-            return "null_command";
+            return "exit_d";
         }
         // Check for escape sequence
         if (curr_ch == ESCAPE)
@@ -476,10 +505,14 @@ void Interface::evaluate_command()
     std::cout << "\n\n";
 
     // Mostly used for testing before solving Ctrl + C
-    if (this->m_command == "quit" || this->m_command == "exit")
+    if (this->m_command == "quit" || this->m_command.substr(0, 4) == "exit")
     {
+        // exit_d is used for Ctrl + D, so we don't want to add it to the history
+        if (this->m_command != "exit_d")
+        {
+            HistoryManager::get_instance().add_instr(this->m_command);
+        }
         this->m_aborted = true;
-        HistoryManager::get_instance().add_instr(this->m_command);
         config_terminal(false);
         clear();
         return;

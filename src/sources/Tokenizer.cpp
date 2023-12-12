@@ -1,7 +1,7 @@
 // Buzatu Giulian
 // Neculae Andrei-Fabian (refactoring)
 
-#include "../includes/Tokenizer.h"
+#include "Tokenizer.h"
 
 namespace Tokenizer
 {
