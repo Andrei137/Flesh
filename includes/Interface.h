@@ -28,40 +28,40 @@ class Interface
     ~Interface() = default;
 
     // Disables canonical mode and echo or enables them back
-    int configTerminal(bool) const;
+    int config_terminal(bool) const;
 
     // Refreshed the display when the user alters the current command
-    void refreshDisplay(int) const;
+    void refresh_display(int) const;
 
     // Handles the arrow keys' functionality
-    void handleArrowKeys(char, int&, int&);
+    void handle_arrow_keys(char, int&, int&);
 
     // Handles the Ctrl + arrow keys' functionality
-    void handleCtrlArrowKeys(char, int&);
+    void handle_ctrl_arrow_keys(char, int&);
 
     // Handles the backspace key's functionality
-    void handleBackspace(int&);
+    void handle_backspace(int&);
 
     // Handles Ctrl + C's signal (SIGINT)
     // This function must be static as it is a generic handler
-    static void handleSigInt(int);
+    static void handle_sig_int(int);
 
     // Handles Ctrl + \'s signal (SIGQUIT)
     // This function must be static as it is a generic handler
-    static void handleSigQuit(int);
+    static void handle_sig_quit(int);
 
     // Handles Ctrl + Z's signal (SIGTSTP)
     // This function must be static as it is a generic handler
-    static void handleSigTstp(int);
+    static void handle_sig_tstp(int);
 
     // Not the logo we deserved, but the logo we needed
-    void printLogo();
+    void print_logo();
 
     // When the user presses enter, the command is returned
-    std::string getCommand();
+    std::string get_command();
 
     // Evaluates the command and acts accordingly
-    void evaluateCommand();
+    void evaluate_command();
     
 public:
     // Runs the flesh
@@ -69,7 +69,7 @@ public:
 
     // The class is a singleton thus we need a get method
     // This is that method
-    static Interface& getInstance();
+    static Interface& get_instance();
 };
 
 #endif // FSL_INTERFACE_H

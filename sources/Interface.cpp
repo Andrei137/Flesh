@@ -15,14 +15,10 @@
 #include <unistd.h>
 #include <vector>
 
-// OLD
-// \033[H moves the cursor to the top left corner of the screen
-// \033[J clears the screen from the cursor to the end of the screen
-
-// NEW
 // \033c clears the screen and moves the cursor to the top left corner of the screen
 #define clear() std::cout << "\033c"
 
+// Defining the ASCII codes for some special characters
 #define CTRL_D 4
 #define ESCAPE 27
 #define ONE 49
@@ -38,12 +34,12 @@
 Interface::Interface() : m_aborted(false) 
 {
     // Get an instance of HistoryManager to initialize the location of the history file
-    HistoryManager::getInstance();
+    HistoryManager::get_instance();
 }
 
-int Interface::configTerminal(bool a_change) const
+int Interface::config_terminal(bool a_change) const
 {
-    struct termios ttystate;
+    struct termios ttystate{};
     memset(&ttystate, 0, sizeof(ttystate));
 
     // Get the current terminal state
@@ -55,8 +51,7 @@ int Interface::configTerminal(bool a_change) const
 
     if (a_change)
     {
-        // Disable canonical mode so that input characters are immediately available
-        // Disable echo so that characters such as the arrow keys aren't printed
+        // Disable canonical mode and echo so that characters such as the arrow keys aren't printed
         // Output has to be handled manually
         ttystate.c_lflag &= ~(ICANON | ECHO);
     }
@@ -76,138 +71,135 @@ int Interface::configTerminal(bool a_change) const
     return 0;
 }
 
-void Interface::refreshDisplay(int a_cursorPosition) const
+void Interface::refresh_display(int a_cursor_position) const
 {
     // Move to the beginning of the line, printing the path and the command again
     std::cout << "\r" << this->m_path << this->m_command << "\033[K";
 
     // Move cursor to the correct position
-    std::cout << "\033[" << a_cursorPosition + this->m_path.size() + 1 << "G";
+    std::cout << "\033[" << a_cursor_position + this->m_path.size() + 1 << "G";
 
     // Ensure that the output is printed immediately
     std::cout.flush();
 }
 
-void Interface::handleArrowKeys(char a_arrowKey, int& a_cursorPosition, int& a_historyPosition)
+void Interface::handle_arrow_keys(char a_arrow_key, int& a_cursor_position, int& a_history_position)
 {
-    if (a_arrowKey == UP_ARROW) // Up Arrow pressed, move to the next command if possible
+    if (a_arrow_key == UP_ARROW) // Up Arrow pressed, move to the next command if possible
     {
-        const std::string* command = HistoryManager::getInstance().getInstr(a_historyPosition + 1);
+        const std::string* command{ HistoryManager::get_instance().get_instr(a_history_position + 1) };
         
         if (command != nullptr)
         {
             // We didn't hit the history limit so just get that command
             this->m_command = *command;
-            ++a_historyPosition;
+            ++a_history_position;
         }
-        a_cursorPosition = static_cast<int>(this->m_command.size());
-        refreshDisplay(a_cursorPosition);
+        a_cursor_position = static_cast<int>(this->m_command.size());
+        refresh_display(a_cursor_position);
     }
-    else if (a_arrowKey == DOWN_ARROW) // Down Arrow pressed, move to the previous command if possible
+    else if (a_arrow_key == DOWN_ARROW) // Down Arrow pressed, move to the previous command if possible
     {
-        if (a_historyPosition > 0)
+        if (a_history_position > 0)
         {
-            --a_historyPosition;
-            this->m_command = *HistoryManager::getInstance().getInstr(a_historyPosition);
+            --a_history_position;
+            this->m_command = *HistoryManager::get_instance().get_instr(a_history_position);
         }
         else
         {
-            a_historyPosition = -1;
+            a_history_position = -1;
             this->m_command = "";
         }
-        a_cursorPosition = static_cast<int>(this->m_command.size());
-        refreshDisplay(a_cursorPosition);
+        a_cursor_position = static_cast<int>(this->m_command.size());
+        refresh_display(a_cursor_position);
     }
-    else if (a_arrowKey == RIGHT_ARROW) // Right Arrow pressed, move cursor to the right if possible
+    else if (a_arrow_key == RIGHT_ARROW) // Right Arrow pressed, move cursor to the right if possible
     {
-        if (a_cursorPosition < static_cast<int>(this->m_command.size())) 
+        if (a_cursor_position < static_cast<int>(this->m_command.size())) 
         {
-            ++a_cursorPosition;
-            refreshDisplay(a_cursorPosition);
+            ++a_cursor_position;
+            refresh_display(a_cursor_position);
         }
     }
     else  // Left Arrow pressed, move cursor to the left if possible
     {
-        if (a_cursorPosition > 0) 
+        if (a_cursor_position > 0) 
         {
-            --a_cursorPosition;
-            refreshDisplay(a_cursorPosition);
+            --a_cursor_position;
+            refresh_display(a_cursor_position);
         }
     }
 }
 
 // This function costed me 3 hours of my life (which felt like 3 days)
 // At least it works now
-void Interface::handleCtrlArrowKeys(char a_arrowKey, int& a_cursorPosition)
+void Interface::handle_ctrl_arrow_keys(char a_arrow_key, int& a_cursor_position)
 {
     // Remove all trailing spaces from the command
     while (this->m_command[this->m_command.length() - 1] == ' ')
     {
         this->m_command.pop_back();
     }
-    if (a_arrowKey == LEFT_ARROW) // Ctrl + Left Arrow pressed, move cursor to the beginning of the current word
+    if (a_arrow_key == LEFT_ARROW) // Ctrl + Left Arrow pressed, move cursor to the beginning of the current word
     {
-        if (a_cursorPosition != 0)
+        if (a_cursor_position != 0)
         {
             // Add a dummy space at the beginning of the command and later remove it
             this->m_command.insert(0, 1, ' ');
 
             // Find the previous space before the cursor
-            size_t lastSpace = this->m_command.rfind(' ', a_cursorPosition - 1);
+            size_t last_space = this->m_command.rfind(' ', a_cursor_position - 1);
             this->m_command.erase(0, 1);
 
             // If there is no previous space, set the cursor to the beginning of the command
             // Else, set the cursor before the previous space
-            a_cursorPosition = static_cast<int>(lastSpace);
-            refreshDisplay(a_cursorPosition);
+            a_cursor_position = static_cast<int>(last_space);
+            refresh_display(a_cursor_position);
         }
     }
     else // Ctrl + Right Arrow pressed, move cursor to the end of the current word
     {
-        if (a_cursorPosition != static_cast<int>(this->m_command.length()))
+        if (a_cursor_position != static_cast<int>(this->m_command.length()))
         {
             // Add a dummy space at the end of the command and later remove it
             this->m_command.insert(this->m_command.length(), 1, ' ');
 
             // Find the next space after the cursor
-            size_t nextSpace = this->m_command.find(' ', a_cursorPosition + 1);
+            size_t next_space = this->m_command.find(' ', a_cursor_position + 1);
             this->m_command.erase(this->m_command.length() - 1, 1);
 
             // If there is no next space, set the cursor to the end of the command
             // Else, set the cursor after the next space
-            if (nextSpace == this->m_command.length())
+            if (next_space == this->m_command.length())
             {
-                --nextSpace;
+                --next_space;
             }
-            a_cursorPosition = static_cast<int>(nextSpace) + 1;
-            refreshDisplay(a_cursorPosition);
+            a_cursor_position = static_cast<int>(next_space) + 1;
+            refresh_display(a_cursor_position);
         }
     }
 }
 
-// Simulates backspace (as it was disabled by configTerminal)
-void Interface::handleBackspace(int& a_cursorPosition) 
+// Simulates backspace (as it was disabled by config_terminal)
+void Interface::handle_backspace(int& a_cursor_position) 
 {
-    if (a_cursorPosition > 0) 
+    if (a_cursor_position > 0) 
     {
-        this->m_command.erase(a_cursorPosition - 1, 1);
-        --a_cursorPosition;
-        refreshDisplay(a_cursorPosition);
+        this->m_command.erase(a_cursor_position - 1, 1);
+        --a_cursor_position;
+        refresh_display(a_cursor_position);
     }
 }
 
 // Handles Ctrl + C's signal (SIGINT)
 // If the child process is still running, it is killed
 // Else, the program exits
-void Interface::handleSigInt(int)
+void Interface::handle_sig_int(int)
 {
-    Interface& interface{ Interface::getInstance() };
+    Interface& interface{ Interface::get_instance() };
 
     int status{};
-    pid_t result = waitpid(interface.m_child_pid, &status, WNOHANG);
-
-
-    if (result == 0)
+    if (waitpid(interface.m_child_pid, &status, WNOHANG) == 0)
     {
         kill(interface.m_child_pid, SIGKILL);
     }
@@ -215,39 +207,38 @@ void Interface::handleSigInt(int)
     {
         std::cout << "^C\n";
         interface.m_aborted = true;
-        interface.configTerminal(false);
+        interface.config_terminal(false);
         exit(0);
     }
 }
 
 // Handles Ctrl + \'s signal (SIGQUIT)
 // The program exits no matter what
-void Interface::handleSigQuit(int)
+void Interface::handle_sig_quit(int)
 {
-    Interface& interface{ Interface::getInstance() };
+    Interface& interface{ Interface::get_instance() };
     interface.m_aborted = true;
-    interface.configTerminal(false);
+    interface.config_terminal(false);
     clear();
     exit(0);
 }
 
 // Handles Ctrl + Z's signal (SIGTSTP)
-void Interface::handleSigTstp(int)
+// Only works if the child process is still running
+void Interface::handle_sig_tstp(int)
 {
-    int status;
-    pid_t result = waitpid(Interface::getInstance().m_child_pid, &status, WNOHANG);
-
-    if (result == 0)
+    int status{};
+    if (waitpid(Interface::get_instance().m_child_pid, &status, WNOHANG) == 0)
     {
-        std::cout << "\nStopped       " << Interface::getInstance().m_command << '\n';
-        kill(Interface::getInstance().m_child_pid, SIGKILL);
+        std::cout << "\nStopped       " << Interface::get_instance().m_command << '\n';
+        kill(Interface::get_instance().m_child_pid, SIGKILL);
     }
 }
 
 // Mom can we have Cooked Porkchop?
 // We have Cooked Porkchop at home
 // Cooked Porkchop at home:
-void Interface::printLogo()
+void Interface::print_logo()
 {
     clear();
     std::cout << "                .--*#+                            \n";
@@ -270,67 +261,67 @@ void Interface::printLogo()
 
 // Returns the command when the user presses enter
 // Until then, the command can be modified in any way
-std::string Interface::getCommand()
+std::string Interface::get_command()
 {
-    int cursorPosition{ 0 };
-    int historyPosition{ -1 };
+    int cursor_position{ 0 };
+    int history_position{ -1 };
     bool changed{ false };
-    char cChanged{ '\n' };
+    char changed_ch{ '\n' };
     this->m_command = "";
 
-    configTerminal(true);
-    refreshDisplay(cursorPosition);
+    config_terminal(true);
+    refresh_display(cursor_position);
 
     while (true)
     {
         // Changed is used to check if the user pressed tab when autocomplete was available and then pressed something else
         // It implies the user wants to use the current autocomplete option and probably pressed /, enter or space
-        // To avoid reading the same character twice, we use cChanged to remember it
+        // To avoid reading the same character twice, we use changed_ch to remember it
         // We only read a new character if changed is false, otherwise we use the one we already have
-        char c{ cChanged };
+        char curr_ch{ changed_ch };
         if (!changed)
         {
-            c = getchar();
+            curr_ch = getchar();
         }
-        if (c == CTRL_D)
+        if (curr_ch == CTRL_D)
         {
             // The user pressed CTRL + D
             // We need to exit the program
             this->m_aborted = true;
-            configTerminal(false);
+            config_terminal(false);
             clear();
             return "null_command";
         }
         // Check for escape sequence
-        if (c == ESCAPE)
+        if (curr_ch == ESCAPE)
         {
-            c = getchar();
+            curr_ch = getchar();
             // Check for the '[' character
-            if (c == RIGHT_SQUARE_BRACKET) 
+            if (curr_ch == RIGHT_SQUARE_BRACKET) 
             {
-                c = getchar();
+                curr_ch = getchar();
                 // Check for arrow keys
-                if (c == UP_ARROW || c == DOWN_ARROW || c == RIGHT_ARROW || c == LEFT_ARROW)
+                if (curr_ch == UP_ARROW || curr_ch == DOWN_ARROW || curr_ch == RIGHT_ARROW || curr_ch == LEFT_ARROW)
                 {
-                    handleArrowKeys(c, cursorPosition, historyPosition);
+                    handle_arrow_keys(curr_ch, cursor_position, history_position);
                 }
                 // Check For Ctrl + Left / Right Arrow Key
                 // For some reason, the key combination is read as 1;5C / 1;5D
                 // My sanity is slowly fading away
-                else if (c == ONE)
+                else if (curr_ch == ONE)
                 {
-                    c = getchar();
-                    if (c == SEMICOLON)
+                    curr_ch = getchar();
+                    if (curr_ch == SEMICOLON)
                     {
-                        c = getchar();
-                        if (c == FIVE)
+                        curr_ch = getchar();
+                        if (curr_ch == FIVE)
                         {
-                            c = getchar();
-                            if (c == RIGHT_ARROW || c == LEFT_ARROW)
+                            curr_ch = getchar();
+                            if (curr_ch == RIGHT_ARROW || curr_ch == LEFT_ARROW)
                             {
                                 // Look mom, I finally did it!
                                 // It only took me 3 hours and 2 mental breakdowns
-                                handleCtrlArrowKeys(c, cursorPosition);
+                                handle_ctrl_arrow_keys(curr_ch, cursor_position);
                             }
                         }
                     }
@@ -338,40 +329,40 @@ std::string Interface::getCommand()
             }
         }
         // Check for backspace
-        else if (c == BACKSPACE)
+        else if (curr_ch == BACKSPACE)
         {
-            handleBackspace(cursorPosition);
+            handle_backspace(cursor_position);
         }
         // Check for tab
-        else if (c == '\t')
+        else if (curr_ch == '\t')
         {
             // Get the current word from the command
             m_command.insert(0, 1, ' ');
-            int lastSpace = m_command.rfind(' ', cursorPosition - 1) - 1;
+            int last_space{ static_cast<int>(m_command.rfind(' ', cursor_position - 1)) - 1 };
             m_command.erase(0, 1);
-            std::string path = m_command.substr(lastSpace + 1, cursorPosition - lastSpace - 1);
+            std::string path{ m_command.substr(last_space + 1, cursor_position - last_space - 1) };
             
             // If it has / in it, it is most likely a path or the command has cd in it
             if (path.find('/') != std::string::npos)
             {
                 // Get the information from the path
                 // The directory is everything before the last /
-                // The fileName is everything after the last /, most likely a part of the file name
-                std::string directory = path.substr(0, path.find_last_of('/'));
-                std::string fileName = path.substr(path.find_last_of('/') + 1, path.length() - path.find_last_of('/'));
+                // The file_name is everything after the last /, most likely a part of the file name
+                std::string directory{ path.substr(0, path.find_last_of('/')) };
+                std::string file_name{ path.substr(path.find_last_of('/') + 1, path.length() - path.find_last_of('/')) };
                 
                 // Get all the files from the directory
-                std::vector<std::string> files;
-                for (const auto& entry : std::filesystem::directory_iterator(directory))
+                std::vector<std::string> files{};
+                for (const auto& file : std::filesystem::directory_iterator(directory))
                 {
-                    files.push_back(entry.path().filename().string());
+                    files.push_back(file.path().filename().string());
                 }
 
-                // Find all the files that start with fileName
-                std::vector<std::string> matches;
+                // Find all the files that start with file_name
+                std::vector<std::string> matches{};
                 for (const auto& file : files)
                 {
-                    if (file.substr(0, fileName.length()) == fileName)
+                    if (file.substr(0, file_name.length()) == file_name)
                     {
                         // If the command has cd in it, only add directories
                         // We don't know where cd is
@@ -392,31 +383,31 @@ std::string Interface::getCommand()
                 // If there is only one match, add it to the command
                 if (matches.size() == 1)
                 {
-                    m_command.insert(cursorPosition, matches[0].substr(fileName.length(), matches[0].length() - fileName.length()));
-                    cursorPosition += matches[0].length() - fileName.length();
-                    refreshDisplay(cursorPosition);
+                    m_command.insert(cursor_position, matches[0].substr(file_name.length(), matches[0].length() - file_name.length()));
+                    cursor_position += matches[0].length() - file_name.length();
+                    refresh_display(cursor_position);
                 }
                 // If there are more matches, add them to the command one by one
                 else if (matches.size() > 1)
                 {
                     // Remember the default values so that we can get back to them if the user presses something else than tab
-                    std::string defaultCommand{ m_command };
-                    int defaultCursorPosition{ cursorPosition };
+                    std::string default_command{ m_command };
+                    int default_cursor_position{ cursor_position };
 
                     for (const auto& match : matches)
                     {
                         // Get the old values back
-                        m_command = defaultCommand;
-                        cursorPosition = defaultCursorPosition;
+                        m_command = default_command;
+                        cursor_position = default_cursor_position;
 
                         // Change them to the new ones
-                        m_command.insert(cursorPosition, match.substr(fileName.length(), match.length() - fileName.length()));
-                        cursorPosition += match.length() - fileName.length();
-                        refreshDisplay(cursorPosition);
+                        m_command.insert(cursor_position, match.substr(file_name.length(), match.length() - file_name.length()));
+                        cursor_position += match.length() - file_name.length();
+                        refresh_display(cursor_position);
 
-                        c = getchar();
+                        curr_ch = getchar();
                         // If the user presses tab, continue to the next match
-                        if (c == '\t' || c == ' ')
+                        if (curr_ch == '\t' || curr_ch == ' ')
                         {
                             continue;
                         }
@@ -424,7 +415,7 @@ std::string Interface::getCommand()
                         else
                         {
                             changed = true;
-                            cChanged = c;
+                            changed_ch = curr_ch;
                             break;
                         }
                     }
@@ -432,16 +423,16 @@ std::string Interface::getCommand()
                     // If the user didn't keep a value, get back to the default ones
                     if (!changed)
                     {
-                        m_command = defaultCommand;
-                        cursorPosition = defaultCursorPosition;
-                        refreshDisplay(cursorPosition);
+                        m_command = default_command;
+                        cursor_position = default_cursor_position;
+                        refresh_display(cursor_position);
                     }
                 }
             }
         
         }
         // Finalize the command when the user presses enter
-        else if (c == '\n')
+        else if (curr_ch == '\n')
         {
             std::cout << '\n';
             if (this->m_command == "")
@@ -463,9 +454,9 @@ std::string Interface::getCommand()
             {
                 changed = false;
             }
-            this->m_command.insert(cursorPosition, 1, c);
-            ++cursorPosition;
-            refreshDisplay(cursorPosition);
+            this->m_command.insert(cursor_position, 1, curr_ch);
+            ++cursor_position;
+            refresh_display(cursor_position);
         }
     }
 
@@ -473,26 +464,29 @@ std::string Interface::getCommand()
     return "";
 }
 
-void Interface::evaluateCommand()
+void Interface::evaluate_command()
 {
     // Obtaining the tokens
-    // No further usage atm
-    std::vector<std::string> tokens=Tokenizer::tokenize(this->m_command);
-    for(const std::string& token:tokens)
-        std::cerr<<token<<' '<<token.size()<<'\n';
+    // No further usage at the moment
+    std::vector<std::string> tokens{ Tokenizer::tokenize(this->m_command) };
+    for(const std::string& token : tokens)
+    {
+        std::cout << token << ' ' << token.size() << '\n';
+    }
+    std::cout << "\n\n";
 
-    // Quit exits the program, but doesn't close the shell (unlike exit)
     // Mostly used for testing before solving Ctrl + C
     if (this->m_command == "quit" || this->m_command == "exit")
     {
         this->m_aborted = true;
-        HistoryManager::getInstance().addInstr(this->m_command);
-        configTerminal(false);
+        HistoryManager::get_instance().add_instr(this->m_command);
+        config_terminal(false);
         clear();
         return;
     }
     if (this->m_command.substr(0, 7) == "history")
     {
+        HistoryManager& manager{ HistoryManager::get_instance() };
         int number{ 0 };
 
         if (this->m_command.length() > 9)
@@ -500,44 +494,40 @@ void Interface::evaluateCommand()
             // If the command is history -c, clear the history
             if (this->m_command[9] == 'c')
             {
-                HistoryManager::getInstance().clearHistory();
                 std::cout << "Successfully cleared history\n\n";
-                HistoryManager::getInstance().addInstr(this->m_command);
+                manager.clear_history();
+                manager.add_instr(this->m_command);
                 return;
             }
-	    // For testing, -n outputs the count of elements
-	    else if (this->m_command[9] == 'n')
-	    {
-                int numberElements{ HistoryManager::getInstance().getInstrCount() };
-		
-		std::cout << "Number of stored commands is " << numberElements << '\n';
-                HistoryManager::getInstance().addInstr(this->m_command);
-
+    	    // For testing, -n outputs the count of elements
+    	    else if (this->m_command[9] == 'n')
+    	    {
+                int no_elements{ manager.get_instr_count() };
+                std::cout << "Number of stored commands is " << no_elements << '\n';
+                manager.add_instr(this->m_command);
                 return;
-	    }
-
+    	    }
             // If the command is history -number, print the last <number> commands
             number = std::stoi(this->m_command.substr(9, this->m_command.length() - 8));
         }
 
         // If number is 0, print all the commands
         // Else, print the last <number> commands
-        HistoryManager& manager = HistoryManager::getInstance();
-        int numberElements{ HistoryManager::getInstance().getInstrCount() };
-        if (number == 0 || number > numberElements)
+        int no_elements{ manager.get_instr_count() };
+        if (number == 0 || number > no_elements)
         {
-            number = numberElements;
+            number = no_elements;
         }
 
         for ( --number; number > -1; --number)
         {
-            std::cout << *manager.getInstr(number) << '\n';
+            std::cout << *manager.get_instr(number) << '\n';
         }
     }
     else if (this->m_command == "clear")
     {
         clear();
-        printLogo();
+        print_logo();
     }
     else if (this->m_command == "pwd" || this->m_command == "cd")
     {
@@ -548,7 +538,7 @@ void Interface::evaluateCommand()
     }
     else if (this->m_command.substr(0, 2) == "cd")
     {
-        std::string directory = this->m_command.substr(3, this->m_command.length() - 3);
+        std::string directory{ this->m_command.substr(3, this->m_command.length() - 3) };
 
         // Checks if the directory is between quotes or has the last quote missing
         if (this->m_command[3] == '\"')
@@ -563,10 +553,10 @@ void Interface::evaluateCommand()
             }
         }
 
-        std::filesystem::path newPath{ std::filesystem::current_path() / directory };
-        if (std::filesystem::exists(newPath))
+        std::filesystem::path new_path{ std::filesystem::current_path() / directory };
+        if (std::filesystem::exists(new_path))
         {
-            std::filesystem::current_path(newPath);
+            std::filesystem::current_path(new_path);
         }
         else
         {
@@ -579,8 +569,8 @@ void Interface::evaluateCommand()
         // To use with execvp
         char* argv[128];
         int argc{ 0 };
-        std::string tempCommand{ this->m_command };
-        char* p{ strtok(const_cast<char*>(tempCommand.c_str()), " ") };
+        std::string temp_command{ this->m_command };
+        char* p{ strtok(const_cast<char*>(temp_command.c_str()), " ") };
         while (p != nullptr)
         {
             argv[argc++] = p;
@@ -609,7 +599,7 @@ void Interface::evaluateCommand()
         }
         if (m_child_pid == 0)
         {
-            configTerminal(false);
+            config_terminal(false);
             if (execvp(argv[0], argv) == -1)
             {
                 perror("Error executing command");
@@ -617,13 +607,13 @@ void Interface::evaluateCommand()
             }
         }
         wait(nullptr);
-        configTerminal(true);
+        config_terminal(true);
     }
 
     // If the user actually entered a command, add it to the history
     if (this->m_command != "null_command")
     {
-        HistoryManager::getInstance().addInstr(this->m_command);
+        HistoryManager::get_instance().add_instr(this->m_command);
     }
 
     // For better visibility
@@ -635,22 +625,22 @@ void Interface::evaluateCommand()
 
 void Interface::run()
 {
-    signal(SIGINT, handleSigInt);
-    signal(SIGQUIT, handleSigQuit);
-    signal(SIGTSTP, handleSigTstp);
+    signal(SIGINT, handle_sig_int);
+    signal(SIGQUIT, handle_sig_quit);
+    signal(SIGTSTP, handle_sig_tstp);
 
-    printLogo();
+    print_logo();
     
     while (!this->m_aborted)
     {
         this->m_path = std::filesystem::current_path().string() + ">";
-        this->m_command = getCommand();
-        evaluateCommand();
+        this->m_command = get_command();
+        evaluate_command();
     }
 }
 
-Interface& Interface::getInstance()
+Interface& Interface::get_instance()
 {
-    static Interface myInterface{};
-    return myInterface;
+    static Interface my_interface{};
+    return my_interface;
 }

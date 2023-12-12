@@ -1,4 +1,5 @@
-//Buzatu Giulian
+// Buzatu Giulian
+// Neculae Andrei-Fabian (refactoring)
 
 #ifndef FSL_TOKENIZER_H
 #define FSL_TOKENIZER_H
@@ -11,7 +12,7 @@ namespace Tokenizer
     // Returns a vector of tokens from the command
     // A token is a small word/set of symbols that helps us to understand what command the user wants to execute
     // Internally, a token is a std::string
-    std::vector<std::string> tokenize(const std::string& a_command);
+    std::vector<std::string> tokenize(const std::string&);
 }
 
 #endif // FSL_TOKENIZER_H

@@ -23,7 +23,7 @@ env:
   BUILD_TYPE: ${{ inputs.build_type || 'Debug' }}
   # NOTE: update executable name if it is changed in CMakeLists.txt
   EXECUTABLE_NAME: "Flesh"
-  INPUT_FILENAME: "custom_commands.txt"
+  INPUT_FILENAME: "history.txt"
   BUILD_DIR: "build"
   EXT_DIR: "ext"
   BIN_DIR: "bin"

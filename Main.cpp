@@ -4,6 +4,6 @@
 
 int main()
 {
-    Interface::getInstance().run();
+    Interface::get_instance().run();
     return 0;
 }

@@ -17,7 +17,7 @@ public:
 
 private:
 	// The file where the history is stored
-	static std::string m_historyFileLocation;
+	static std::string m_history_file_location;
 
 	// Instruction list, hard capped at m_MAX_INSTR_CNT instructions
 	// Stored as a circular buffer, where currInstr is the most recent one,
@@ -26,13 +26,13 @@ private:
 	std::string m_history[m_MAX_INSTR_CNT];
 
 	// The most recent instruction. Check m_history and m_isFull for more info.
-	int m_currInstr;
+	int m_curr_instr;
 	
 	// Is the buffer full? (Can we loop around or do we stop at 0)
-	bool m_isFull;
+	bool m_is_full;
 
 	// Has the history finished loading?
-	bool m_isLoaded;
+	bool m_is_loaded;
 
 	// We use this to save the history at every instruction added to the history.
 	// To do this we are flushing the command to the stream every time.
@@ -62,7 +62,7 @@ private:
 public:
 	// Adds the instruction in the buffer.
 	// Should be called when an instruction was ran by the user
-	void addInstr(const std::string&);
+	void add_instr(const std::string&);
 
 	// Get the instruction specified by the index.
 	// If the index exceeds MAX_INSTR_CNT then a nullptr is returned.
@@ -71,17 +71,17 @@ public:
 	// getInstr(0) returns the most recent instruction,
 	// getInstr(1) returns the second most recent instruction,
 	// ...
-	const std::string* getInstr(int) const;
+	const std::string* get_instr(int) const;
 
 	// Clears both the vector and the file
-	void clearHistory();
+	void clear_history();
 
 	// The class is a singleton thus we need a get method
 	// This is that method
-	static HistoryManager& getInstance();
+	static HistoryManager& get_instance();
 
 	// The number of currently stored instructions
-	int getInstrCount() const;
+	int get_instr_count() const;
 };
 
 #endif // FSL_HISTORYMANAGER_H

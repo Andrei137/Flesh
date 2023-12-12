@@ -4,15 +4,15 @@
 #include "HistoryManager.h"
 #include <filesystem>
 
-std::string HistoryManager::m_historyFileLocation = "history.txt";
+std::string HistoryManager::m_history_file_location{ "history.txt" };
 
 // Constructor. Loads the history from the disk
 HistoryManager::HistoryManager()
 {
-	if (m_historyFileLocation == "history.txt")
+	if (m_history_file_location == "history.txt")
 	{
-		std::filesystem::path myPath = std::filesystem::current_path();
-		m_historyFileLocation = myPath.string() + "/history.txt";
+		std::filesystem::path my_path = std::filesystem::current_path();
+		m_history_file_location = my_path.string() + "/history.txt";
 	}
 	this->load();
 }
@@ -27,17 +27,17 @@ HistoryManager::~HistoryManager()
 // Currently the convention is that the last instruction read is the most recent
 void HistoryManager::load()
 {
-	std::ifstream in(m_historyFileLocation);
-	std::string str;
+	std::ifstream in(m_history_file_location);
+	std::string str{};
 	
-	this->m_isLoaded = false;
+	this->m_is_loaded = false;
 
-	for (this->m_currInstr = -1; getline(in, str, '\n'); )
+	for (this->m_curr_instr = -1; getline(in, str, '\n'); )
 	{
-		this->addInstr(str);
+		this->add_instr(str);
 	}
 
-	this->m_isLoaded = true;
+	this->m_is_loaded = true;
 	this->save();
 }
 
@@ -45,13 +45,12 @@ void HistoryManager::load()
 // Currently the convention is that the last instruction read is the most recent
 void HistoryManager::save()
 {
-	int i;
-	
-	this->m_output = std::ofstream(HistoryManager::m_historyFileLocation);
+	this->m_output = std::ofstream(HistoryManager::m_history_file_location);
 
-	if (this->m_isFull)
+	if (this->m_is_full)
 	{
-		for (i = (this->m_currInstr + 1) % m_MAX_INSTR_CNT; i != this->m_currInstr; i = (i + 1) % m_MAX_INSTR_CNT)
+		int i{};
+		for (i = (this->m_curr_instr + 1) % m_MAX_INSTR_CNT; i != this->m_curr_instr; i = (i + 1) % m_MAX_INSTR_CNT)
 		{
 			this->m_output << this->m_history[i] << '\n';
 		}
@@ -60,7 +59,7 @@ void HistoryManager::save()
 	}
 	else
 	{
-		for (i = 0; i <= this->m_currInstr; ++i)
+		for (int i = 0; i <= this->m_curr_instr; ++i)
 		{
 			this->m_output << this->m_history[i] << '\n';
 		}
@@ -71,33 +70,33 @@ void HistoryManager::save()
 
 // Add an instruction to the buffer.
 // Following the convention, this instruction is the most recent one, thus
-// it is at the m_currInstr position. For more info read getInstr
-void HistoryManager::addInstr(const std::string& a_instr)
+// it is at the m_curr_instr position. For more info read get_instr
+void HistoryManager::add_instr(const std::string& a_instr)
 {
-	bool shouldRefresh = false;
+	bool should_refresh{ false };
 
-	if (this->m_currInstr + 1 == m_MAX_INSTR_CNT)
+	if (this->m_curr_instr + 1 == m_MAX_INSTR_CNT)
 	{
 		// If we have at least 2 * m_MAX_INSTR_CNT commands in the history
 		// save file then we do a cleanup. This has 2 effects.
 		// 1. It is unlikely to ever use a command so old.
 		// 2. It does not allow the file to get too big in size (although it is
 		// still possible)
-		if (this->m_isFull)
+		if (this->m_is_full)
 		{
-			shouldRefresh = true;
+			should_refresh = true;
 		}
 		else
 		{
-			this->m_isFull = true;
+			this->m_is_full = true;
 		}
 	}
-	this->m_currInstr = (this->m_currInstr + 1) % m_MAX_INSTR_CNT;
-	this->m_history[this->m_currInstr] = a_instr;
+	this->m_curr_instr = (this->m_curr_instr + 1) % m_MAX_INSTR_CNT;
+	this->m_history[this->m_curr_instr] = a_instr;
 
-	if (this->m_isLoaded)
+	if (this->m_is_loaded)
 	{
-		if (shouldRefresh)
+		if (should_refresh)
 		{
 			this->save();
 		}
@@ -110,18 +109,18 @@ void HistoryManager::addInstr(const std::string& a_instr)
 
 // Returns a const std::string pointer pointing to the std::string representing
 // the instruction specified by index. The current convention is that
-// m_currInstr is the index o the last instruction inserted, m_currInstr - 1 is
+// m_curr_instr is the index o the last instruction inserted, m_curr_instr - 1 is
 // the second to last instruction ... . Keep in mind that the buffer is
 // circullar
-const std::string* HistoryManager::getInstr(int a_index) const
+const std::string* HistoryManager::get_instr(int a_index) const
 {
 	if (a_index < 0 || a_index >= m_MAX_INSTR_CNT)
 	{
 		return nullptr;
 	}
 
-	a_index = (this->m_currInstr - a_index + m_MAX_INSTR_CNT) % m_MAX_INSTR_CNT;
-	if (a_index > this->m_currInstr && ! this->m_isFull)
+	a_index = (this->m_curr_instr - a_index + m_MAX_INSTR_CNT) % m_MAX_INSTR_CNT;
+	if (a_index > this->m_curr_instr && ! this->m_is_full)
 	{
 		return nullptr;
 	}
@@ -130,27 +129,26 @@ const std::string* HistoryManager::getInstr(int a_index) const
 }
 
 // Clears the history
-void HistoryManager::clearHistory()
+void HistoryManager::clear_history()
 {
-	this->m_currInstr = -1;
-	this->m_isFull = false;
-
-	this->m_output = std::ofstream(HistoryManager::m_historyFileLocation);
+	this->m_curr_instr = -1;
+	this->m_is_full = false;
+	this->m_output = std::ofstream(HistoryManager::m_history_file_location);
 }
 
 // Get function for the singleton class HistoryManager
-HistoryManager& HistoryManager::getInstance()
+HistoryManager& HistoryManager::get_instance()
 {
-	static HistoryManager myManager;
-	return myManager;
+	static HistoryManager my_manager{};
+	return my_manager;
 }
 
 // The number of currently stored instructions
-int HistoryManager::getInstrCount() const
+int HistoryManager::get_instr_count() const
 {
-	if (this->m_isFull)
+	if (this->m_is_full)
 	{
 		return m_MAX_INSTR_CNT;
 	}
-	return this->m_currInstr + 1;
+	return this->m_curr_instr + 1;
 }
