@@ -16,12 +16,12 @@ sudo apt install cmake
 
 - Daca se foloseste scriptul, este necesar sa ii dam drepturi de executie
 ```bash
-chmod +x run.sh
+chmod +x build.sh
 ```
 
-1. Folosind scriptul run.sh
+1. Folosind scriptul build.sh (run este optional)
 ```bash
-./run.sh
+./build.sh [run]
 ```
 
 2. Manual

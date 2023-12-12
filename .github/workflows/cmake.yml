@@ -2,10 +2,13 @@ name: C++ CI
 
 on:
   push:
-    branches: ['*'] # NOTE: replace/update with appropriate branch name(s)
-    tags: ['*']
+    branches:
+      - '*' # NOTE: replace/update with appropriate branch name(s)
+    tags:
+      - '*'
   pull_request:
-    branches: ['*'] # NOTE: replace/update with appropriate branch name(s)
+    branches:
+      - '*' # NOTE: replace/update with appropriate branch name(s)
   workflow_dispatch:
     inputs:
       build_type:
@@ -21,18 +24,14 @@ on:
 
 env:
   BUILD_TYPE: ${{ inputs.build_type || 'Debug' }}
-  # NOTE: update executable name if it is changed in CMakeLists.txt
   EXECUTABLE_NAME: "Flesh"
-  INPUT_FILENAME: "history.txt"
+  INPUT_FILENAME: "bin/history.txt"
   BUILD_DIR: "build"
   EXT_DIR: "ext"
   BIN_DIR: "bin"
 
 defaults:
   run:
-    # Use a bash shell, so we can use the same syntax for environment variable
-    # access regardless of the host operating system
-    # https://github.com/saxbophone/CPP20-Cross-Platform-Template
     shell: bash
 
 jobs:
@@ -51,7 +50,7 @@ jobs:
       - name: Configure CMake
         uses: ./.github/actions/configure-cmake
         with:
-          custom_flags: '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON'
+          custom_flags: '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -S src'
 
       - name: Cppcheck
         run: |
@@ -84,20 +83,17 @@ jobs:
       - name: Configure CMake
         uses: ./.github/actions/configure-cmake
         with:
-          custom_flags: '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON'
+          custom_flags: '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON -S src'
 
       - name: Clang-Tidy
         continue-on-error: true
-        # clang-tidy is not able to follow symbolic links: https://bugs.llvm.org/show_bug.cgi?id=47460
-        # need to use | as sed separator because / is used in paths
         run: |
           sed -i "s|$(which ${CXX})|$(realpath $(which ${CXX}))|g" "${BUILD_DIR}"/compile_commands.json
 
           cat "${BUILD_DIR}"/compile_commands.json |
-            jq -r '.[] | .file' |                    # select source file paths from CMake project; -r to strip quotes
-            grep -v "/${BUILD_DIR}/_deps/" |         # ignore external dependencies
+            jq -r '.[] | .file' |
+            grep -v "/${BUILD_DIR}/_deps/" |
             xargs clang-tidy -p "${BUILD_DIR}"
-
 
   build:
     name: ${{ matrix.name }}
@@ -118,28 +114,29 @@ jobs:
             c: clang-13
             cxx: clang++-13
             name: "MSan: Ubuntu 22.04 Clang 13"
-            # The flag CMAKE_EXPORT_COMPILE_COMMANDS generates compile_commands.json
-            # which is used by cppcheck and clang-tidy
-            cmake_flags: -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+            cmake_flags: >
+              -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+              -S src
             cmake_generator: Ninja
             runs_msan: true
-            # This env runs memory sanitizers
 
           - os: ubuntu-22.04
             c: gcc-12
             cxx: g++-12
             name: "ASan: Ubuntu 22.04 GCC 12"
-            cmake_flags: -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+            cmake_flags: >
+              -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+              -S src
             runs_asan: true
-            # This env runs address sanitizers
 
           - os: ubuntu-22.04
             c: gcc-11
             cxx: g++-11
             name: "Valgrind: Ubuntu 22.04 GCC 11"
-            # cmake_flags:
+            cmake_flags: >
+              -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+              -S src
             runs_valgrind: true
-            # This env runs valgrind
 
     steps:
       - name: Checkout repo

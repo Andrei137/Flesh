@@ -714,6 +714,8 @@ FodyWeavers.xsd
 # executable
 Flesh
 
+!bin
+
 ### VisualStudio Patch ###
 # Additional files built by Visual Studio
 
