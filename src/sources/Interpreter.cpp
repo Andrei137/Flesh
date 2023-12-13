@@ -103,6 +103,7 @@ bool Interpreter::is_operator(const std::string& a_operator)
             return true;
         }
     }
+    return false;
 }
 
 int Interpreter::evaluate_command(const std::vector<std::string>& a_tokens)
