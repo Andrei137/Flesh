@@ -711,9 +711,6 @@ FodyWeavers.xsd
 # Sublime Text
 *.sublime-project
 
-# executable
-Flesh
-
 !bin
 
 ### VisualStudio Patch ###

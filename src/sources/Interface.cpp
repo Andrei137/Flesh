@@ -75,7 +75,7 @@ int Interface::config_terminal(bool a_change) const
 void Interface::refresh_display(int a_cursor_position) const
 {
     // Move to the beginning of the line, printing the path and the command again
-    std::cout << "\r" << this->m_path << this->m_command << "\033[K";
+    std::cout << "\r" << Color::BLUE << this->m_path << Color::DEFAULT << this->m_command << "\033[K";
 
     // Move cursor to the correct position
     std::cout << "\033[" << a_cursor_position + this->m_path.size() + 1 << "G";

@@ -26,7 +26,7 @@ chmod +x build.sh
 
 2. Manual
 ```bash
-cmake -B build -S src
+cmake -B build -S src -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=../bin
 cd build
 make
 cd ../bin
@@ -45,7 +45,7 @@ cd ../bin
     - [x] history         : afiseaza tot istoricul, inclusiv comenzile din sesiunile anterioare
     - [x] history -c      : sterge tot istoricul
     - [x] history -number : afiseaza ultimele [number] comenzi
-    - [x] !!              : executa ultima comanda
+    - [ ] !!              : executa ultima comanda
 
 - Parsing
     - [x] obtinerea comenzii de la utilizator
