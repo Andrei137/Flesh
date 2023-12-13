@@ -188,7 +188,7 @@ std::string Interface::get_command()
             this->m_aborted = true;
             config_terminal(false);
             clear();
-            return "exit_d";
+            return "";
         }
         // Check for escape sequence
         if (curr_ch == ESCAPE)

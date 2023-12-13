@@ -332,7 +332,10 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens)
 void Interpreter::evaluate_command(const std::string& a_command)
 {
     std::vector<std::string> tokens{ Tokenizer::tokenize(a_command) };
-    HistoryManager::get_instance().add_instr(a_command);
+    if (a_command != "")
+    {
+        HistoryManager::get_instance().add_instr(a_command);
+    }
     evaluate_command(tokens);
 }
 
