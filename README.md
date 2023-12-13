@@ -26,8 +26,10 @@ chmod +x build.sh
 
 2. Manual
 ```bash
-cmake .
+cmake -B build -S src
+cd build
 make
+cd ../bin
 ./Flesh
 ```
 
@@ -40,11 +42,10 @@ make
     - [x] pe disk, pentru a se salva chiar daca inchidem shell-ul
     - [x] salvare pe disk in caz de Ctrl + C
     - [x] salvare pe disk in caz de kill
-    - Utilizare
-        - history        : afiseaza tot istoricul, inclusiv comenzile din sesiunile anterioare
-        - history -c     : sterge tot istoricul
-        - history -number: afiseaza ultimele [number] comenzi
-        - !!             : executa ultima comanda (not yet implemented)
+    - [x] history         : afiseaza tot istoricul, inclusiv comenzile din sesiunile anterioare
+    - [x] history -c      : sterge tot istoricul
+    - [x] history -number : afiseaza ultimele [number] comenzi
+    - [x] !!              : executa ultima comanda
 
 - Parsing
     - [x] obtinerea comenzii de la utilizator
