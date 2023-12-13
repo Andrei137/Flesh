@@ -9,9 +9,11 @@
 ---
 
 ## Utilizare
-- Inainte de a rula, trebuie sa ne asiguram ca avem instalat cmake
+- Inainte de a rula, trebuie sa ne asiguram ca avem instalate build-essential, cmake si make
 ```bash
+sudo apt install build-essential
 sudo apt install cmake
+sudo apt install make
 ```
 
 - Daca se foloseste scriptul, este necesar sa ii dam drepturi de executie
@@ -38,18 +40,23 @@ cd ../bin
 ## Cerinte
 
 - Istoric comenzi
-    - [x] limita de cativa MB
-    - [x] pe disk, pentru a se salva chiar daca inchidem shell-ul
-    - [x] salvare pe disk in caz de Ctrl + C
-    - [x] salvare pe disk in caz de kill
-    - [x] history         : afiseaza tot istoricul, inclusiv comenzile din sesiunile anterioare
-    - [x] history -c      : sterge tot istoricul
-    - [x] history -number : afiseaza ultimele [number] comenzi
-    - [ ] !!              : executa ultima comanda
+    - [x] Limita de cativa MB
+    - [x] Pe disk, pentru a se salva chiar daca inchidem shell-ul
+    - [x] Salvare pe disk in caz de Ctrl + C
+    - [x] Salvare pe disk in caz de kill
+    - [x] history
+        - Afiseaza tot istoricul, inclusiv comenzile din sesiunile anterioare
+    - [x] history -c
+        - Sterge tot istoricul
+    - [x] history -number
+        - Afiseaza ultimele [number] comenzi
+    - [ ] !!
+        - Executa ultima comanda
 
 - Parsing
-    - [x] obtinerea comenzii de la utilizator
-    - [x] tokenizarea comenzii
+    - [x] Obtinerea comenzii de la utilizator
+    - [x] Tokenizarea comenzii
+    - [ ] Executarea comenzii, tinand cont de operatori
 
 - Piping
     - [ ] Operatorul |
@@ -62,7 +69,7 @@ cd ../bin
         - Utilizare: echo "Hello World!" > output.txt
     - [ ] Operatorul >>
         - Redirectioneaza output-ul catre o fila txt (append)
-        - Utilizare: echo "Hello World!" > output.txt
+        - Utilizare: echo "Hello World!" >> output.txt
     - [ ] Operatorul <
         - Preia input-ul dintr-o fila txt
         - Utilizare: sort < input.txt
@@ -120,8 +127,10 @@ cd ../bin
 
 - [Ansi Escape Sequences 1](https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797)
 - [Ansi Escape Sequences 2](https://en.m.wikipedia.org/wiki/ANSI_escape_code#CSI_sequences)
+- [Append to file in C](https://www.geeksforgeeks.org/c-program-to-append-content-of-one-text-file-to-another/)
 - [Ascii Art Tool](https://www.asciiart.eu/image-to-ascii)
 - [Basic Signal Handling (pentru Ctrl + C)](https://www.gnu.org/software/libc/manual/html_node/Basic-Signal-Handling.html)
+- [Creating Pipes in C](https://tldp.org/LDP/lpg/node11.html#SECTION00722000000000000000)
 - [Execvp (pentru a executa comenzi)](https://linux.die.net/man/3/execvp)
 - [Proper handling of SIGINT/SIGQUIT](https://www.cons.org/cracauer/sigint.html)
 - [Terminos (pentru functionalitatea sagetilor)](https://man7.org/linux/man-pages/man3/termios.3.html)

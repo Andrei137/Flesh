@@ -27,9 +27,6 @@ class Interface
     Interface& operator=(Interface&&) = delete;
     ~Interface() = default;
 
-    // Disables canonical mode and echo or enables them back
-    int config_terminal(bool) const;
-
     // Refreshed the display when the user alters the current command
     void refresh_display(int) const;
 
@@ -42,21 +39,6 @@ class Interface
     // Handles the backspace key's functionality
     void handle_backspace(int&);
 
-    // Handles Ctrl + C's signal (SIGINT)
-    // This function must be static as it is a generic handler
-    static void handle_sig_int(int);
-
-    // Handles Ctrl + \'s signal (SIGQUIT)
-    // This function must be static as it is a generic handler
-    static void handle_sig_quit(int);
-
-    // Handles Ctrl + Z's signal (SIGTSTP)
-    // This function must be static as it is a generic handler
-    static void handle_sig_tstp(int);
-
-    // Not the logo we deserved, but the logo we needed
-    void print_logo();
-
     // When the user presses enter, the command is returned
     std::string get_command();
 
@@ -64,6 +46,19 @@ class Interface
     void evaluate_command();
     
 public:
+    // If the user gives some kind of kill command
+    // We set m_aborted to true
+    void abort();
+
+    // Clears the screen
+    void clear();
+
+    // Disables canonical mode and echo or enables them back
+    int config_terminal(bool) const;
+
+    // Not the logo we deserved, but the logo we needed
+    void print_logo();
+
     // Runs the flesh
     void run();
 

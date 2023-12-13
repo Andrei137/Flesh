@@ -136,13 +136,6 @@ void HistoryManager::clear_history()
 	this->m_output = std::ofstream(HistoryManager::m_history_file_location);
 }
 
-// Get function for the singleton class HistoryManager
-HistoryManager& HistoryManager::get_instance()
-{
-	static HistoryManager my_manager{};
-	return my_manager;
-}
-
 // The number of currently stored instructions
 int HistoryManager::get_instr_count() const
 {
@@ -151,4 +144,11 @@ int HistoryManager::get_instr_count() const
 		return m_MAX_INSTR_CNT;
 	}
 	return this->m_curr_instr + 1;
+}
+
+// Get function for the singleton class HistoryManager
+HistoryManager& HistoryManager::get_instance()
+{
+	static HistoryManager manager{};
+	return manager;
 }

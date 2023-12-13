@@ -4,6 +4,7 @@
 #include "Color.h"
 #include "HistoryManager.h"
 #include "Interface.h"
+#include "Interpreter.h"
 #include "Tokenizer.h"
 #include <cstdlib>
 #include <cstring>
@@ -15,9 +16,6 @@
 #include <termios.h>
 #include <unistd.h>
 #include <vector>
-
-// \033c clears the screen and moves the cursor to the top left corner of the screen
-#define clear() std::cout << "\033c"
 
 // Defining the ASCII codes for some special characters
 #define CTRL_D 4
@@ -36,40 +34,7 @@ Interface::Interface() : m_aborted(false)
 {
     // Get an instance of HistoryManager to initialize the location of the history file
     HistoryManager::get_instance();
-}
-
-int Interface::config_terminal(bool a_change) const
-{
-    struct termios ttystate{};
-    memset(&ttystate, 0, sizeof(ttystate));
-
-    // Get the current terminal state
-    if (tcgetattr(STDIN_FILENO, &ttystate) == -1) 
-    {
-        perror("Error getting terminal attributes");
-        return errno;
-    }
-
-    if (a_change)
-    {
-        // Disable canonical mode and echo so that characters such as the arrow keys aren't printed
-        // Output has to be handled manually
-        ttystate.c_lflag &= ~(ICANON | ECHO);
-    }
-    else
-    {
-        // Enable canonical mode and echo back
-        ttystate.c_lflag |= (ICANON | ECHO);
-    }
-
-    // Apply the new settings
-    if (tcsetattr(STDIN_FILENO, TCSANOW, &ttystate) == -1) 
-    {
-        perror("Error setting terminal attributes");
-        return errno;
-    }
-    
-    return 0;
+    Interpreter::get_instance();
 }
 
 void Interface::refresh_display(int a_cursor_position) const
@@ -190,102 +155,6 @@ void Interface::handle_backspace(int& a_cursor_position)
         --a_cursor_position;
         refresh_display(a_cursor_position);
     }
-}
-
-// Handles Ctrl + C's signal (SIGINT)
-// If the child process is still running, it is killed
-// Else, the program exits
-void Interface::handle_sig_int(int)
-{
-    Interface& interface{ Interface::get_instance() };
-
-    int status{};
-    if (waitpid(interface.m_child_pid, &status, WNOHANG) == 0)
-    {
-        kill(interface.m_child_pid, SIGKILL);
-    }
-    else
-    {
-        std::cout << "^C\n";
-        interface.m_aborted = true;
-        interface.config_terminal(false);
-        exit(0);
-    }
-}
-
-// Handles Ctrl + \'s signal (SIGQUIT)
-// The program exits no matter what
-void Interface::handle_sig_quit(int)
-{
-    Interface& interface{ Interface::get_instance() };
-    interface.m_aborted = true;
-    interface.config_terminal(false);
-    clear();
-    exit(0);
-}
-
-// Handles Ctrl + Z's signal (SIGTSTP)
-// Only works if the child process is still running
-void Interface::handle_sig_tstp(int)
-{
-    int status{};
-    if (waitpid(Interface::get_instance().m_child_pid, &status, WNOHANG) == 0)
-    {
-        std::cout << "\nStopped       " << Interface::get_instance().m_command << '\n';
-        kill(Interface::get_instance().m_child_pid, SIGKILL);
-    }
-}
-
-// Mom can we have Cooked Porkchop?
-// We have Cooked Porkchop at home
-// Cooked Porkchop at home:
-void Interface::print_logo()
-{
-    clear();
-    const std::string flesh_logo
-    {
-         "                .--###                            \n"
-         "            .==+#*#@@#                            \n"
-         "          =#@@%@@=-=*@@#                          \n"
-         "        ..-@@-.-+%@@@*+@%..+%#                    \n"
-         "        :@#-:=#@@%+-=*#%#=+@@=                    \n"
-         "      -##*=-+@@+-+**+::+#%%@@=                    \n"
-         "    .==::=#@@*==*%%*=::%@@@*                      \n"
-         "  .===-.-%++-.-@@+=+#@@@@@                        \n"
-         ".-=++:-%@-*-=*#*+=++#@@#+##=                      \n"
-         ".++::@@*+=*%@@*:-%@*+*#*##%+                      \n"
-         ".-==*@%-:=++=-+%@##@@@@@@#                        \n"
-         "=@@@@==#%=:-*@@@@@@####____ __    ____ ____ __ __ \n"
-         "  -#@@@::#@@@%%@@####*/ __// /   / __// __// // / \n"
-         "  .=-::*@@@@####     / _/ / /__ / _/ _\\ \\ / _  /\n"
-         "    @@@@##          /_/  /____//___//___//_//_/   \n"
-         "                                                  \n"
-    };
-    for (auto ch : flesh_logo)
-    {
-        std::cout << Color::BG_DEFAULT;
-        if (ch == '%')
-        {
-            std::cout << Color::GREEN << ch;
-        }
-        else if (ch == '#' || ch == '.')
-        {
-            std::cout << Color::DARK_GRAY << ch;
-        }
-        else if (ch == '+' || ch == '*')
-        {
-            std::cout << Color::LIGHT_RED << ch;
-        }
-        else if (ch == '@' || ch == '=' || ch == '-' || ch == ':')
-        {
-            std::cout << Color::RED << ch;
-        }
-        else
-        {
-            std::cout << Color::MAGENTA << ch;
-        }
-    }
-    std::cout << Color::DEFAULT;
 }
 
 // Returns the command when the user presses enter
@@ -461,13 +330,15 @@ std::string Interface::get_command()
         
         }
         // Finalize the command when the user presses enter
-        else if (curr_ch == '\n')
+        // \r for when we enter Python
+        // Becuase it changes the terminal mode for some reason
+        else if (curr_ch == '\n' || curr_ch == '\r')
         {
             std::cout << '\n';
             if (this->m_command == "")
             {
                 // The user pressed enter without typing anything
-                return "null_command";
+                return "";
             }
             // Remove trailing spaces
             while (this->m_command[this->m_command.length() - 1] == ' ')
@@ -493,183 +364,117 @@ std::string Interface::get_command()
     return "";
 }
 
-void Interface::evaluate_command()
+void Interface::abort()
 {
-    // Obtaining the tokens
-    // No further usage at the moment
-    std::vector<std::string> tokens{ Tokenizer::tokenize(this->m_command) };
-    static_cast<void>(tokens); // so that we don't get a warning
+    this->m_aborted = true;
+}
 
-    // Mostly used for testing before solving Ctrl + C
-    if (this->m_command == "quit" || this->m_command.substr(0, 4) == "exit")
+void Interface::clear()
+{
+    // \033c clears the screen and moves the cursor to the top left corner of the screen
+    std::cout << "\033c";
+}
+
+int Interface::config_terminal(bool a_change) const
+{
+    struct termios ttystate{};
+    memset(&ttystate, 0, sizeof(ttystate));
+
+    // Get the current terminal state
+    if (tcgetattr(STDIN_FILENO, &ttystate) == -1) 
     {
-        // exit_d is used for Ctrl + D, so we don't want to add it to the history
-        if (this->m_command != "exit_d")
-        {
-            HistoryManager::get_instance().add_instr(this->m_command);
-        }
-        this->m_aborted = true;
-        config_terminal(false);
-        clear();
-        return;
+        perror("Error getting terminal attributes");
+        return errno;
     }
-    if (this->m_command.substr(0, 7) == "history")
+
+    if (a_change)
     {
-        HistoryManager& manager{ HistoryManager::get_instance() };
-        int number{ 0 };
-
-        if (this->m_command.length() > 9)
-        {
-            // If the command is history -c, clear the history
-            if (this->m_command[9] == 'c')
-            {
-                std::cout << "Successfully cleared history\n\n";
-                manager.clear_history();
-                manager.add_instr(this->m_command);
-                return;
-            }
-    	    // For testing, -n outputs the count of elements
-    	    else if (this->m_command[9] == 'n')
-    	    {
-                int no_elements{ manager.get_instr_count() };
-                std::cout << "Number of stored commands is " << no_elements << '\n';
-                manager.add_instr(this->m_command);
-                return;
-    	    }
-            // If the command is history -number, print the last <number> commands
-            number = std::stoi(this->m_command.substr(9, this->m_command.length() - 8));
-        }
-
-        // If number is 0, print all the commands
-        // Else, print the last <number> commands
-        int no_elements{ manager.get_instr_count() };
-        if (number == 0 || number > no_elements)
-        {
-            number = no_elements;
-        }
-
-        for ( --number; number > -1; --number)
-        {
-            std::cout << *manager.get_instr(number) << '\n';
-        }
-    }
-    else if (this->m_command == "clear")
-    {
-        clear();
-        print_logo();
-    }
-    else if (this->m_command == "pwd" || this->m_command == "cd")
-    {
-        std::string directory{ std::filesystem::current_path().string() };
-        directory = directory.substr(5, directory.length() - 5);
-        directory[0] = toupper(directory[0]);
-        std::cout << directory << '\n';
-    }
-    else if (this->m_command.substr(0, 2) == "cd")
-    {
-        std::string directory{ this->m_command.substr(3, this->m_command.length() - 3) };
-
-        // Checks if the directory is between quotes or has the last quote missing
-        if (this->m_command[3] == '\"')
-        {
-            if (this->m_command[this->m_command.length() - 1] == '\"')
-            {
-                directory = directory.substr(1, directory.length() - 2);
-            }
-            else
-            {
-                directory = directory.substr(1, directory.length() - 1);
-            }
-        }
-
-        std::filesystem::path new_path{ std::filesystem::current_path() / directory };
-        if (std::filesystem::exists(new_path))
-        {
-            std::filesystem::current_path(new_path);
-        }
-        else
-        {
-            std::cout << "Invalid directory\n";
-        }
+        // Disable canonical mode and echo so that characters such as the arrow keys aren't printed
+        // Output has to be handled manually
+        ttystate.c_lflag &= ~(ICANON | ECHO);
     }
     else
     {
-        // Getting the arguments from the command
-        // To use with execvp
-        char* argv[128];
-        int argc{ 0 };
-        std::string temp_command{ this->m_command };
-        char* p{ strtok(const_cast<char*>(temp_command.c_str()), " ") };
-        while (p != nullptr)
-        {
-            argv[argc++] = p;
-            // If the call is echo and p starts with a quote, remove it
-            if (strcmp(argv[0], "echo") == 0 && p[0] == '\"')
-            {
-                p = p + 1;
-                // If p ends with a quote, remove it
-                if (p[strlen(p) - 1] == '\"')
-                {
-                    p[strlen(p) - 1] = '\0';
-                }
-                argv[argc - 1] = p;
-            }
-            p = strtok(nullptr, " ");
-        }
-        argv[argc] = nullptr;
-
-        // Creating a new process to run the command
-        // So that the program doesn't exit after running the command
-        m_child_pid = fork();
-        if (m_child_pid == -1)
-        {
-            perror("Error forking");
-            return;
-        }
-        if (m_child_pid == 0)
-        {
-            config_terminal(false);
-            if (execvp(argv[0], argv) == -1)
-            {
-                perror("Error executing command");
-                exit(1);
-            }
-        }
-        wait(nullptr);
-        config_terminal(true);
+        // Enable canonical mode and echo back
+        ttystate.c_lflag |= (ICANON | ECHO);
     }
 
-    // If the user actually entered a command, add it to the history
-    if (this->m_command != "null_command")
+    // Apply the new settings
+    if (tcsetattr(STDIN_FILENO, TCSANOW, &ttystate) == -1) 
     {
-        HistoryManager::get_instance().add_instr(this->m_command);
+        perror("Error setting terminal attributes");
+        return errno;
     }
+    
+    return 0;
+}
 
-    // For better visibility
-    if (this->m_command != "clear")
+// Mom can we have Cooked Porkchop?
+// We have Cooked Porkchop at home
+// Cooked Porkchop at home:
+void Interface::print_logo()
+{
+    clear();
+    const std::string flesh_logo
     {
-        std::cout << '\n';
+         "                .--###                            \n"
+         "            .==+#*#@@#                            \n"
+         "          =#@@%@@=-=*@@#                          \n"
+         "        ..-@@-.-+%@@@*+@%..+%#                    \n"
+         "        :@#-:=#@@%+-=*#%#=+@@=                    \n"
+         "      -##*=-+@@+-+**+::+#%%@@=                    \n"
+         "    .==::=#@@*==*%%*=::%@@@*                      \n"
+         "  .===-.-%++-.-@@+=+#@@@@@                        \n"
+         ".-=++:-%@-*-=*#*+=++#@@#+##=                      \n"
+         ".++::@@*+=*%@@*:-%@*+*#*##%+                      \n"
+         ".-==*@%-:=++=-+%@##@@@@@@#                        \n"
+         "=@@@@==#%=:-*@@@@@@####____ __    ____ ____ __ __ \n"
+         "  -#@@@::#@@@%%@@####*/ __// /   / __// __// // / \n"
+         "  .=-::*@@@@####     / _/ / /__ / _/ _\\ \\ / _  /\n"
+         "    @@@@##          /_/  /____//___//___//_//_/   \n"
+         "                                                  \n"
+    };
+    for (auto ch : flesh_logo)
+    {
+        std::cout << Color::BG_DEFAULT;
+        if (ch == '%')
+        {
+            std::cout << Color::GREEN << ch;
+        }
+        else if (ch == '#' || ch == '.')
+        {
+            std::cout << Color::DARK_GRAY << ch;
+        }
+        else if (ch == '+' || ch == '*')
+        {
+            std::cout << Color::LIGHT_RED << ch;
+        }
+        else if (ch == '@' || ch == '=' || ch == '-' || ch == ':')
+        {
+            std::cout << Color::RED << ch;
+        }
+        else
+        {
+            std::cout << Color::MAGENTA << ch;
+        }
     }
+    std::cout << Color::DEFAULT;
 }
 
 void Interface::run()
 {
-    signal(SIGINT, handle_sig_int);
-    signal(SIGQUIT, handle_sig_quit);
-    signal(SIGTSTP, handle_sig_tstp);
-
     print_logo();
     
     while (!this->m_aborted)
     {
         this->m_path = std::filesystem::current_path().string() + ">";
         this->m_command = get_command();
-        evaluate_command();
+        Interpreter::get_instance().evaluate_command(this->m_command);
     }
 }
 
 Interface& Interface::get_instance()
 {
-    static Interface my_interface{};
-    return my_interface;
+    static Interface interface{};
+    return interface;
 }

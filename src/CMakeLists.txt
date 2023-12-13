@@ -90,6 +90,7 @@ add_executable(
     sources/Color.cpp
     sources/HistoryManager.cpp 
     sources/Interface.cpp 
+    sources/Interpreter.cpp
     sources/Tokenizer.cpp
 )
 
