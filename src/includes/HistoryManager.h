@@ -76,12 +76,12 @@ public:
 	// Clears both the vector and the file
 	void clear_history();
 
+	// The number of currently stored instructions
+	int get_instr_count() const;
+
 	// The class is a singleton thus we need a get method
 	// This is that method
 	static HistoryManager& get_instance();
-
-	// The number of currently stored instructions
-	int get_instr_count() const;
 };
 
 #endif // FSL_HISTORYMANAGER_H

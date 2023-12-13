@@ -24,15 +24,15 @@ class Interpreter
 
     // Handles Ctrl + C's signal (SIGINT)
     // This function must be static as it is a generic handler
-    static void handle_sig_int(int);
+    static void handle_sigint(int);
 
     // Handles Ctrl + \'s signal (SIGQUIT)
     // This function must be static as it is a generic handler
-    static void handle_sig_quit(int);
+    static void handle_sigquit(int);
 
     // Handles Ctrl + Z's signal (SIGTSTP)
     // This function must be static as it is a generic handler
-    static void handle_sig_tstp(int);
+    static void handle_sigtstp(int);
 
     // Handler for AND operator
     int operator_and(const std::vector<std::string>&, const std::vector<std::string>&);

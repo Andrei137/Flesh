@@ -17,8 +17,6 @@ class Interface
 
     // The current command
     std::string m_command;
-    
-    pid_t m_child_pid;
 
     Interface();
     Interface(const Interface&) = delete;

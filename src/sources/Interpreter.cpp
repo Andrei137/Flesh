@@ -16,16 +16,18 @@
 Interpreter::Interpreter()
 {
     // Register the signal handlers
-    signal(SIGINT, Interpreter::handle_sig_int);
-    signal(SIGQUIT, Interpreter::handle_sig_quit);
-    signal(SIGTSTP, Interpreter::handle_sig_tstp);
+    signal(SIGINT, Interpreter::handle_sigint);
+    signal(SIGQUIT, Interpreter::handle_sigquit);
+    signal(SIGTSTP, Interpreter::handle_sigtstp);
 }
 
 // Handles Ctrl + C's signal (SIGINT)
 // If the child process is still running, it is killed
 // Else, the program exits
-void Interpreter::handle_sig_int(int)
+void Interpreter::handle_sigint(int)
 {
+    std::cout << "^C\n";
+
     Interpreter& interpreter{ Interpreter::get_instance() };
     int status{};
     if (waitpid(interpreter.m_child_pid, &status, WNOHANG) == 0)
@@ -34,7 +36,6 @@ void Interpreter::handle_sig_int(int)
     }
     else
     {
-        std::cout << "^C" << std::endl;
         Interface& interface{ Interface::get_instance() };
         interface.abort();
         interface.config_terminal(false);
@@ -44,7 +45,7 @@ void Interpreter::handle_sig_int(int)
 
 // Handles Ctrl + \'s signal (SIGQUIT)
 // The program exits no matter what
-void Interpreter::handle_sig_quit(int)
+void Interpreter::handle_sigquit(int)
 {
     Interface& interface{ Interface::get_instance() };
     interface.abort();
@@ -55,7 +56,7 @@ void Interpreter::handle_sig_quit(int)
 
 // Handles Ctrl + Z's signal (SIGTSTP)
 // Only works if the child process is still running
-void Interpreter::handle_sig_tstp(int)
+void Interpreter::handle_sigtstp(int)
 {
     Interpreter& interpreter{ Interpreter::get_instance() };
     int status{};
@@ -63,28 +64,31 @@ void Interpreter::handle_sig_tstp(int)
     {
         std::cout << "\nStopped\n";
         kill(interpreter.m_child_pid, SIGKILL);
-        Interface::get_instance().config_terminal(false);
     }
 }
 
 int Interpreter::operator_and(const std::vector<std::string>& a_left, const std::vector<std::string>& a_right)
 {
-    int result{ evaluate_command(a_left) };
-    if (result == 1)
+    // The first command executed succesfully
+    if (evaluate_command(a_left) == 1)
     {
+        // So we run the second one too
         return evaluate_command(a_right);
     }
-    return result;
+    // The first command failed
+    return 0;
 }
 
 int Interpreter::operator_or(const std::vector<std::string>& a_left, const std::vector<std::string>& a_right)
 {
-    int result{ evaluate_command(a_left) };
-    if (result == 0)
+    // The first command failed
+    if (evaluate_command(a_left) == 0)
     {
+        // So we run the second one too
         return evaluate_command(a_right);
     }
-    return result;
+    // The first command executed succesfully
+    return 1;
 }
 
 int Interpreter::operator_semicolon(const std::vector<std::string>& a_left, const std::vector<std::string>& a_right)
@@ -125,6 +129,7 @@ int Interpreter::evaluate_command(const std::vector<std::string>& a_tokens)
 
     if (operator_idx != static_cast<int>(a_tokens.size()))
     {
+        // We build the left and the right vectors
         std::vector<std::string> left{}, right{};
 
         for (int i = 0; i < operator_idx; ++i)
@@ -137,6 +142,7 @@ int Interpreter::evaluate_command(const std::vector<std::string>& a_tokens)
             right.push_back(a_tokens[i]);
         }
             
+        // We run the commands with the current operator
         if (a_tokens[operator_idx] == "&&")
         {
             return operator_and(left, right);
@@ -156,54 +162,61 @@ int Interpreter::evaluate_command(const std::vector<std::string>& a_tokens)
 
 // Old implementation
 // Will be removed after merging with the new one
-/*
-void Interpreter::evaluate_command(const std::string& a_command)
+
+int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens)
 {
     Interface& interface{ Interface::get_instance() };
 
-    // Obtaining the tokens
-    // No further usage at the moment
-    std::vector<std::string> tokens{ Tokenizer::tokenize(a_command) };
-    static_cast<void>(tokens); // so that we don't get a warning
+    // Get the whole command from the tokens
+    std::string command{ "" };
+    for (const std::string& token : a_tokens)
+    {
+        command += token + ' ';
+    }
+    command.pop_back();
+
+    // If we have sudo at the beginning, the offset will be 5
+    int offset{ 0 };
+
+    // We find the executable index, it's either the first or second one
+    int exec_idx{ 0 };
+    if (a_tokens[0] == "sudo")
+    {
+        ++exec_idx;
+        offset = 5;
+    }
 
     // Mostly used for testing before solving Ctrl + C
-    if (a_command == "quit" || a_command.substr(0, 4) == "exit")
+    if (a_tokens[exec_idx] == "quit" || a_tokens[exec_idx].substr(0, 4) == "exit")
     {
-        // exit_d is used for Ctrl + D, so we don't want to add it to the history
-        if (a_command != "exit_d")
-        {
-            HistoryManager::get_instance().add_instr(a_command);
-        }
         interface.abort();
         interface.config_terminal(false);
         interface.clear();
-        return;
+        return 1;
     }
-    if (a_command.substr(0, 7) == "history")
+    if (a_tokens[exec_idx] == "history")
     {
         HistoryManager& manager{ HistoryManager::get_instance() };
         int number{ 0 };
 
-        if (a_command.length() > 9)
+        if (static_cast<int>(command.length()) > 9 + offset)
         {
             // If the command is history -c, clear the history
-            if (a_command[9] == 'c')
+            if (command[9 + offset] == 'c')
             {
                 std::cout << "Successfully cleared history\n\n";
                 manager.clear_history();
-                manager.add_instr(a_command);
-                return;
+                return 1;
             }
             // For testing, -n outputs the count of elements
-            else if (a_command[9] == 'n')
+            else if (command[9 + offset] == 'n')
             {
                 int no_elements{ manager.get_instr_count() };
                 std::cout << "Number of stored commands is " << no_elements << '\n';
-                manager.add_instr(a_command);
-                return;
+                return 1;
             }
             // If the command is history -number, print the last <number> commands
-            number = std::stoi(a_command.substr(9, a_command.length() - 8));
+            number = std::stoi(command.substr(9 + 5 * offset, command.length() - (8 + 5 * offset)));
         }
 
         // If number is 0, print all the commands
@@ -213,32 +226,31 @@ void Interpreter::evaluate_command(const std::string& a_command)
         {
             number = no_elements;
         }
-
-        for ( --number; number > -1; --number)
+        --number;
+        while (number > -1)
         {
-            std::cout << *manager.get_instr(number) << '\n';
+            std::cout << *manager.get_instr(number--) << '\n';
         }
     }
-    else if (a_command == "clear")
+    else if (a_tokens[exec_idx] == "clear")
     {
         interface.clear();
         interface.print_logo();
     }
-    else if (a_command == "pwd" || a_command == "cd")
+    else if (a_tokens[exec_idx] == "pwd" || (a_tokens[exec_idx] == "cd" && exec_idx == static_cast<int>(a_tokens.size())))
     {
         std::string directory{ std::filesystem::current_path().string() };
-        directory = directory.substr(5, directory.length() - 5);
         directory[0] = toupper(directory[0]);
         std::cout << directory << '\n';
     }
-    else if (a_command.substr(0, 2) == "cd")
+    else if (a_tokens[exec_idx] == "cd")
     {
-        std::string directory{ a_command.substr(3, a_command.length() - 3) };
+        std::string directory{ command.substr(3 + offset, command.length() - (3 + offset)) };
 
         // Checks if the directory is between quotes or has the last quote missing
-        if (a_command[3] == '\"')
+        if (command[3 + offset] == '\"')
         {
-            if (a_command[a_command.length() - 1] == '\"')
+            if (command[command.length() - 1] == '\"')
             {
                 directory = directory.substr(1, directory.length() - 2);
             }
@@ -259,19 +271,19 @@ void Interpreter::evaluate_command(const std::string& a_command)
         }
     }
     // If the user actually entered a command, add it to the history
-    else if (a_command != "")
+    else if (command != "")
     {
         // Getting the arguments from the command
         // To use with execvp
         char* argv[128];
         int argc{ 0 };
-        std::string temp_command{ a_command };
+        std::string temp_command{ command };
         char* p{ strtok(const_cast<char*>(temp_command.c_str()), " ") };
         while (p != nullptr)
         {
             argv[argc++] = p;
             // If the call is echo and p starts with a quote, remove it
-            if (strcmp(argv[0], "echo") == 0 && p[0] == '\"')
+            if (strcmp(argv[exec_idx], "echo") == 0 && p[0] == '\"')
             {
                 p = p + 1;
                 // If p ends with a quote, remove it
@@ -291,7 +303,7 @@ void Interpreter::evaluate_command(const std::string& a_command)
         if (m_child_pid == -1)
         {
             perror("Error forking");
-            return;
+            return 0;
         }
         if (m_child_pid == 0)
         {
@@ -300,26 +312,27 @@ void Interpreter::evaluate_command(const std::string& a_command)
             {
                 perror("Error executing command");
                 interface.abort();
-                exit(1);
+                return 0;
             }
         }
         int status{};
         waitpid(m_child_pid, &status, WUNTRACED);
         interface.config_terminal(true);
-        HistoryManager::get_instance().add_instr(a_command);
     }
 
     // For better visibility
-    if (a_command != "clear")
+    if (command != "clear")
     {
         std::cout << '\n';
     }
+
+    return 1;
 }
-*/
 
 void Interpreter::evaluate_command(const std::string& a_command)
 {
     std::vector<std::string> tokens{ Tokenizer::tokenize(a_command) };
+    HistoryManager::get_instance().add_instr(a_command);
     evaluate_command(tokens);
 }
 
