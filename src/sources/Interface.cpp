@@ -497,13 +497,13 @@ void Interface::evaluate_command()
 {
     // Obtaining the tokens
     // No further usage at the moment
+    /*
     std::vector<std::string> tokens{ Tokenizer::tokenize(this->m_command) };
     for(const std::string& token : tokens)
     {
         std::cout << token << ' ' << token.size() << '\n';
     }
-    std::cout << "\n\n";
-
+    */
     // Mostly used for testing before solving Ctrl + C
     if (this->m_command == "quit" || this->m_command.substr(0, 4) == "exit")
     {

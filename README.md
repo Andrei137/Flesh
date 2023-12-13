@@ -39,14 +39,15 @@ make
     - [x] limita de cativa MB
     - [x] pe disk, pentru a se salva chiar daca inchidem shell-ul
     - [x] salvare pe disk in caz de Ctrl + C
-    - [ ] salvare pe disk in caz de kill
+    - [x] salvare pe disk in caz de kill
     - Utilizare
         - history        : afiseaza tot istoricul, inclusiv comenzile din sesiunile anterioare
         - history -c     : sterge tot istoricul
         - history -number: afiseaza ultimele [number] comenzi
+        - !!             : executa ultima comanda (not yet implemented)
 
-- Parsing input command
-    - [ ] obtinerea comenzii de la utilizator (partially done)
+- Parsing
+    - [x] obtinerea comenzii de la utilizator
     - [x] tokenizarea comenzii
 
 - Piping
@@ -83,7 +84,9 @@ make
 
 - Sistemul de foldere
     - [x] pwd
-    - [x] cd
+    - [x] cd [path]
+    - [ ] cd -
+    - [ ] cd ~
 
 - Comenzi custom
     - [x] quit 
@@ -92,7 +95,7 @@ make
 - Functionalitatea corecta a sagetilor
     - [x] Up, Down -> Istoric comenzi
     - [x] Left, Right -> Navigare prin litere
-    - [x] Ctrl + Up, Ctrl + Down -> Navigare prin cuvinte 
+    - [x] Ctrl + Up, Ctrl + Down -> Navigare prin cuvinte
 
 - Ctrl Signals
     - [x] Ctrl + C (SIGINT)
@@ -104,15 +107,21 @@ make
     - [x] Ctrl + D
           - Inchide Flesh
 
+- Extra
+    - [x] Culori (ANSI Escape Sequences)
+    - [ ] MultiFlesh
+
 - Variabile de mediu
 
 ---
 
 ## Resurse
 
+- [Ansi Escape Sequences 1](https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797)
+- [Ansi Escape Sequences 2](https://en.m.wikipedia.org/wiki/ANSI_escape_code#CSI_sequences)
 - [Ascii Art Tool](https://www.asciiart.eu/image-to-ascii)
 - [Basic Signal Handling (pentru Ctrl + C)](https://www.gnu.org/software/libc/manual/html_node/Basic-Signal-Handling.html)
-- [CSI Sequences](https://en.m.wikipedia.org/wiki/ANSI_escape_code#CSI_sequences)
 - [Execvp (pentru a executa comenzi)](https://linux.die.net/man/3/execvp)
+- [Proper handling of SIGINT/SIGQUIT](https://www.cons.org/cracauer/sigint.html)
 - [Terminos (pentru functionalitatea sagetilor)](https://man7.org/linux/man-pages/man3/termios.3.html)
 - [Terminos syntax configuration with bitwise operators](https://stackoverflow.com/questions/48477989/termios-syntax-configuration-with-bitwise-operators)
