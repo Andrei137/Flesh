@@ -96,10 +96,13 @@ int Interpreter::operator_semicolon(const std::vector<std::string>& a_left, cons
 bool Interpreter::is_operator(const std::string& a_operator)
 {
     const std::vector<std::string> operators{ "&&", "||", ";" };
-    return std::any_of(operators.begin(), operators.end(), [&a_operator](const std::string& a_current_operator)
+    for (const std::string& op : operators)
     {
-        return a_operator == a_current_operator;
-    });
+        if (a_operator == op)
+        {
+            return true;
+        }
+    }
 }
 
 int Interpreter::evaluate_command(const std::vector<std::string>& a_tokens)
