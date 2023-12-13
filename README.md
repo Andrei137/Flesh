@@ -9,9 +9,11 @@
 ---
 
 ## Utilizare
-- Inainte de a rula, trebuie sa ne asiguram ca avem instalat cmake
+- Inainte de a rula, trebuie sa ne asiguram ca avem instalate build-essential, cmake si make
 ```bash
+sudo apt install build-essential
 sudo apt install cmake
+sudo apt install make
 ```
 
 - Daca se foloseste scriptul, este necesar sa ii dam drepturi de executie
@@ -38,18 +40,23 @@ cd ../bin
 ## Cerinte
 
 - Istoric comenzi
-    - [x] limita de cativa MB
-    - [x] pe disk, pentru a se salva chiar daca inchidem shell-ul
-    - [x] salvare pe disk in caz de Ctrl + C
-    - [x] salvare pe disk in caz de kill
-    - [x] history         : afiseaza tot istoricul, inclusiv comenzile din sesiunile anterioare
-    - [x] history -c      : sterge tot istoricul
-    - [x] history -number : afiseaza ultimele [number] comenzi
-    - [ ] !!              : executa ultima comanda
+    - [x] Limita de cativa MB
+    - [x] Pe disk, pentru a se salva chiar daca inchidem shell-ul
+    - [x] Salvare pe disk in caz de Ctrl + C
+    - [x] Salvare pe disk in caz de kill
+    - [x] history
+        - Afiseaza tot istoricul, inclusiv comenzile din sesiunile anterioare
+    - [x] history -c
+        - Sterge tot istoricul
+    - [x] history -number
+        - Afiseaza ultimele [number] comenzi
+    - [ ] !!
+        - Executa ultima comanda
 
 - Parsing
-    - [x] obtinerea comenzii de la utilizator
-    - [x] tokenizarea comenzii
+    - [x] Obtinerea comenzii de la utilizator
+    - [x] Tokenizarea comenzii
+    - [ ] Executarea comenzii, tinand cont de operatori
 
 - Piping
     - [ ] Operatorul |
