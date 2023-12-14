@@ -48,6 +48,8 @@ cd ../bin
         - Afiseaza tot istoricul, inclusiv comenzile din sesiunile anterioare
     - [x] history -c
         - Sterge tot istoricul
+    - [x] history -n
+        - Afiseaza numarul de comenzi din istoric
     - [x] history -number
         - Afiseaza ultimele [number] comenzi
     - [ ] !!
@@ -56,10 +58,10 @@ cd ../bin
 - Parsing
     - [x] Obtinerea comenzii de la utilizator
     - [x] Tokenizarea comenzii
-    - [ ] Executarea comenzii, tinand cont de operatori
+    - [x] Executarea comenzii, tinand cont de operatori
 
 - Piping
-    - [ ] Operatorul |
+    - [x] Operatorul |
         - Output-ul primei comenzi este input pentru a doua comanda
         - Utilizare: cat logfile.txt | sort | uniq -c
 
@@ -75,15 +77,15 @@ cd ../bin
         - Utilizare: sort < input.txt
 
 - Operatori Logici
-    - [ ] Operatorul &&
+    - [x] Operatorul &&
         - Executa comanda urmatoare doar daca prima comanda a avut succes
         - Utilizare: gcc test.cpp -o test && ./test
-    - [ ] Operatorul ||
+    - [x] Operatorul ||
         - Executa comanda urmatoare doar daca prima comanda a avut esec
         - Utilizare: gcc test.cpp -o test || echo "Compilation failed"
 
 - Control Flow
-    - [ ] Separatorul ;
+    - [x] Separatorul ;
         - Permite executia mai multor comenzi secvential
         - Utilizare: sleep 10; echo "Hello World!"
     - [ ] Separatorul '&'
@@ -99,6 +101,7 @@ cd ../bin
 - Comenzi custom
     - [x] quit 
     - [x] clear
+    - [x] sudo [comanda custom] 
 
 - Functionalitatea corecta a sagetilor
     - [x] Up, Down -> Istoric comenzi
@@ -116,6 +119,7 @@ cd ../bin
           - Inchide Flesh
 
 - Extra
+    - [x] Logo
     - [x] Culori (ANSI Escape Sequences)
     - [ ] MultiFlesh
 
