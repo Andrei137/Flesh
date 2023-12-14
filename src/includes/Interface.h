@@ -1,5 +1,5 @@
 // Neculae Andrei-Fabian
-// Ilie Dumitru (some refactoring)
+// Ilie Dumitru
 
 #ifndef FSL_INTERFACE_H
 #define FSL_INTERFACE_H

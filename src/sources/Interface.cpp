@@ -1,5 +1,5 @@
-// Ilie Dumitru (some refactoring)
-// Neculae Andrei-Fabian (TODOs)
+// Ilie Dumitru
+// Neculae Andrei-Fabian
 
 #include "Color.h"
 #include "HistoryManager.h"
@@ -34,6 +34,8 @@ Interface::Interface() : m_aborted(false)
 {
     // Get an instance of HistoryManager to initialize the location of the history file
     HistoryManager::get_instance();
+
+    // Get an instance of Interpreter to have the signal handlers initialized
     Interpreter::get_instance();
 }
 
@@ -97,8 +99,6 @@ void Interface::handle_arrow_keys(char a_arrow_key, int& a_cursor_position, int&
     }
 }
 
-// This function costed me 3 hours of my life (which felt like 3 days)
-// At least it works now
 void Interface::handle_ctrl_arrow_keys(char a_arrow_key, int& a_cursor_position)
 {
     // Remove all trailing spaces from the command
@@ -204,8 +204,6 @@ std::string Interface::get_command()
                     handle_arrow_keys(curr_ch, cursor_position, history_position);
                 }
                 // Check For Ctrl + Left / Right Arrow Key
-                // For some reason, the key combination is read as 1;5C / 1;5D
-                // My sanity is slowly fading away
                 else if (curr_ch == ONE)
                 {
                     curr_ch = getchar();
@@ -217,8 +215,6 @@ std::string Interface::get_command()
                             curr_ch = getchar();
                             if (curr_ch == RIGHT_ARROW || curr_ch == LEFT_ARROW)
                             {
-                                // Look mom, I finally did it!
-                                // It only took me 3 hours and 2 mental breakdowns
                                 handle_ctrl_arrow_keys(curr_ch, cursor_position);
                             }
                         }
@@ -434,6 +430,7 @@ void Interface::print_logo()
          "    @@@@##          /_/  /____//___//___//_//_/   \n"
          "                                                  \n"
     };
+
     for (auto ch : flesh_logo)
     {
         std::cout << Color::BG_DEFAULT;

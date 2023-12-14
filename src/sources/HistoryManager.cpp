@@ -146,7 +146,6 @@ int HistoryManager::get_instr_count() const
 	return this->m_curr_instr + 1;
 }
 
-// Get function for the singleton class HistoryManager
 HistoryManager& HistoryManager::get_instance()
 {
 	static HistoryManager manager{};

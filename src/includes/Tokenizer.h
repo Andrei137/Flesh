@@ -1,5 +1,5 @@
 // Buzatu Giulian
-// Neculae Andrei-Fabian (refactoring)
+// Neculae Andrei-Fabian
 
 #ifndef FSL_TOKENIZER_H
 #define FSL_TOKENIZER_H

@@ -16,7 +16,7 @@
 Interpreter::Interpreter()
 {
     // Register the signal handlers
-    signal(SIGINT, Interpreter::handle_sigint);
+    signal(SIGINT , Interpreter::handle_sigint);
     signal(SIGQUIT, Interpreter::handle_sigquit);
     signal(SIGTSTP, Interpreter::handle_sigtstp);
 }
@@ -94,13 +94,12 @@ int Interpreter::operator_or(const std::vector<std::string>& a_left, const std::
 int Interpreter::operator_semicolon(const std::vector<std::string>& a_left, const std::vector<std::string>& a_right)
 {
     evaluate_command(a_left);
-    return evaluate_command(a_right);
+    evaluate_command(a_right);
+    return 1; // We return 1 because the semicolon operator doesn't care about the exit value of the commands
 }
 
 int Interpreter::operator_pipe(const std::vector<std::string>& a_left, const std::vector<std::string>& a_right)
 {
-    // Still not done
-
     // We create the child from Flesh, that will execute the two commands that have the pipe operator between them
     pid_t son = fork();
     if (son < 0)
@@ -196,9 +195,10 @@ int Interpreter::operator_pipe(const std::vector<std::string>& a_left, const std
     return !son_return;
 }
 
+// Checks if the string is an operator
 bool Interpreter::is_operator(const std::string& a_operator)
 {
-    const std::vector<std::string> operators{ "&&", "||", ";", "|"};
+    const std::vector<std::string> operators{ "&&", "||", ";", "|" };
     for (const std::string& op : operators)
     {
         if (a_operator == op)
@@ -216,8 +216,9 @@ int Interpreter::evaluate_command(const std::vector<std::string>& a_tokens)
         return 0;
     }
 
+    // Find the first operator
+    // We will change this later considering the priority of the operators
     int operator_idx{};
-
     for (operator_idx = 0; operator_idx < static_cast<int>(a_tokens.size()); ++operator_idx)
     {
         if (this->is_operator(a_tokens[operator_idx]))
@@ -262,9 +263,6 @@ int Interpreter::evaluate_command(const std::vector<std::string>& a_tokens)
     }
     return evaluate_instr(a_tokens);
 }
-
-// Old implementation
-// Will be removed after merging with the new one
 
 int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_fd_to_close, int a_fd_to_dup)
 {
@@ -414,7 +412,6 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_
         }
         if (WIFEXITED(status))
         {
-            interface.config_terminal(true);
             // For better visibility
             if (command != "clear")
             {
@@ -424,13 +421,6 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_
         }
         return 0;
     }
-
-    // For better visibility
-    if (command != "clear")
-    {
-        std::cout << '\n';
-    }
-
     return 1;
 }
 

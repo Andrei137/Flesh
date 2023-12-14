@@ -1,5 +1,5 @@
 // Buzatu Giulian
-// Neculae Andrei-Fabian (refactoring)
+// Neculae Andrei-Fabian
 
 #include "Tokenizer.h"
 
