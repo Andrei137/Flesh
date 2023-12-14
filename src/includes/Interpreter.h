@@ -43,11 +43,14 @@ class Interpreter
     // Handler for SEMICOLON operator
     int operator_semicolon(const std::vector<std::string>&, const std::vector<std::string>&);
 
+    // Handler for PIPE operator
+    int operator_pipe(const std::vector<std::string>&, const std::vector<std::string>&);
+
     // Finds the operator according to which we split the command
     int evaluate_command(const std::vector<std::string>&);
 
     // Evaluates an instruction and returns the exit status
-    int evaluate_instr(const std::vector<std::string>&);
+    int evaluate_instr(const std::vector<std::string>&, int a_fd_to_close = -1, int a_fd_to_dup = -1);
 
     // Checks if the given string is an operator
     bool is_operator(const std::string&);

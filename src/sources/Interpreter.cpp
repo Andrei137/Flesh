@@ -97,9 +97,108 @@ int Interpreter::operator_semicolon(const std::vector<std::string>& a_left, cons
     return evaluate_command(a_right);
 }
 
+int Interpreter::operator_pipe(const std::vector<std::string>& a_left, const std::vector<std::string>& a_right)
+{
+    // Still not done
+
+    // We create the child from Flesh, that will execute the two commands that have the pipe operator between them
+    pid_t son = fork();
+    if (son < 0)
+    {
+        perror("Error at fork");
+        return 0;
+    }
+
+    if (son == 0)
+    {
+        // The child will do the piping operator
+
+        // We create an array with two file descriptors and then call the
+        // pipe system call in order to assign those file descriptors accordingly
+        // fd[0] - read
+        // fd[1] - write
+        int fd[2];
+
+        pipe(fd);
+
+        pid_t grandson = fork(); // The child creates another child that will execute the first command
+        if (grandson < 0)
+        {
+            perror("Error at second fork");
+            return 0;
+        }
+
+        if (grandson == 0)
+        {
+            // Closes the read end because we will not use it
+            close(fd[0]);
+
+            // Closes the file descriptor with id=1, which is stdout
+            // and creates a copy for fd[1], and then assigns to it the id 1.
+            // The old descriptor is not closed! Both may be used interchangeably
+            // When we will call execvp system call, the program we start will write using fd[1]
+            // dup2(fd[1], 1);
+
+            int left_status{ evaluate_instr(a_left, 1, fd[1]) };
+
+            // Closes the write end
+            close(fd[1]);
+
+            // We stop the grandson with an exit value equal to the opposite of Flesh implementation
+            // i.e. if it was successful then we exit(0); if it failed then we exit(1)
+            exit(!left_status);
+        }
+
+        // Child code
+
+        int status{};
+        waitpid(grandson, &status, WUNTRACED);
+        int grandson_return{ WEXITSTATUS(status) };
+
+        // Closes the write end because it will not use it
+        close(fd[1]);
+
+        if (grandson_return != 0)
+        {
+            // First command returned an error; We return that we failed
+
+            // Closes the other end of the pipe, which should also free the memory
+            close(fd[0]);
+
+            return 0;
+        }
+
+        // Closes the file descriptor with id 0, which is stdin
+        // and creates a copy for fd[0], and then assign to it the id 0.
+        // The old descriptor is not closed! Both may be used interchangeably
+        // When we will call system call execvp, the program we start will read with fd[0]
+        // dup2(fd[0], 0);
+
+        int right_status{ evaluate_instr(a_right, 0, fd[0]) };
+
+        // Closes the other end of the pipe, which should also free the memory
+        close(fd[0]);
+
+        // We stop the child with an exit value equal to the opposite of Flesh implementation
+        // i.e. if it was successful then we exit(0); if it failed then we exit(1)
+        exit(!right_status);
+    }
+
+    // Flesh code.
+
+    // Get exit value and return accordingly
+    int status{};
+    waitpid(son, &status, WUNTRACED);
+    int son_return{ WEXITSTATUS(status) };
+
+    // We return a success value equal to the opposite of son exit value
+    // i.e. if it was successful then we return 1; if it failed then we return 0
+    return !son_return;
+}
+
 bool Interpreter::is_operator(const std::string& a_operator)
 {
-    const std::vector<std::string> operators{ "&&", "||", ";" };
+    const std::vector<std::string> operators{ "&&", "||", ";", "|"};
     for (const std::string& op : operators)
     {
         if (a_operator == op)
@@ -155,6 +254,10 @@ int Interpreter::evaluate_command(const std::vector<std::string>& a_tokens)
         {
             return operator_semicolon(left, right);
         }
+        else if (a_tokens[operator_idx] == "|")
+        {
+            return operator_pipe(left, right);
+        }
         return 0;
     }
     return evaluate_instr(a_tokens);
@@ -163,7 +266,7 @@ int Interpreter::evaluate_command(const std::vector<std::string>& a_tokens)
 // Old implementation
 // Will be removed after merging with the new one
 
-int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens)
+int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_fd_to_close, int a_fd_to_dup)
 {
     Interface& interface{ Interface::get_instance() };
 
@@ -273,33 +376,21 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens)
     // If the user actually entered a command, add it to the history
     else if (command != "")
     {
-        // Getting the arguments from the command
-        // To use with execvp
-        char* argv[128];
-        int argc{ 0 };
-        std::string temp_command{ command };
-        char* p{ strtok(const_cast<char*>(temp_command.c_str()), " ") };
-        while (p != nullptr)
+        int argc{ static_cast<int>(a_tokens.size()) };
+        char** argv{ new char*[argc + 1] };
+
+        for (int i = 0; i < argc; ++i)
         {
-            argv[argc++] = p;
-            // If the call is echo and p starts with a quote, remove it
-            if (strcmp(argv[exec_idx], "echo") == 0 && p[0] == '\"')
-            {
-                p = p + 1;
-                // If p ends with a quote, remove it
-                if (p[strlen(p) - 1] == '\"')
-                {
-                    p[strlen(p) - 1] = '\0';
-                }
-                argv[argc - 1] = p;
-            }
-            p = strtok(nullptr, " ");
+            argv[i] = const_cast<char*>(a_tokens[i].c_str());
         }
         argv[argc] = nullptr;
 
-        // Creating a new process to run the command
-        // So that the program doesn't exit after running the command
-        m_child_pid = fork();
+        if (a_fd_to_close != -1)
+        {
+            dup2(a_fd_to_dup, a_fd_to_close);
+        }
+
+        pid_t m_child_pid = fork();
         if (m_child_pid == -1)
         {
             perror("Error forking");
@@ -307,17 +398,31 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens)
         }
         if (m_child_pid == 0)
         {
-            interface.config_terminal(false);
             if (execvp(argv[0], argv) == -1)
             {
                 perror("Error executing command");
-                interface.abort();
                 return 0;
             }
         }
         int status{};
-        waitpid(m_child_pid, &status, WUNTRACED);
-        interface.config_terminal(true);
+        int result{ waitpid(m_child_pid, &status, 0) };
+        delete[] argv;
+        if (result == -1)
+        {
+            perror("Error waiting for child process");
+            return 0;
+        }
+        if (WIFEXITED(status))
+        {
+            interface.config_terminal(true);
+            // For better visibility
+            if (command != "clear")
+            {
+                std::cout << '\n';
+            }
+            return !WEXITSTATUS(status);
+        }
+        return 0;
     }
 
     // For better visibility
