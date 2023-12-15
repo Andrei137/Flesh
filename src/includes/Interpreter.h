@@ -5,6 +5,7 @@
 #ifndef FSL_INTERPRETER_H
 #define FSL_INTERPRETER_H
 
+#include <queue>
 #include <string>
 #include <sys/types.h>
 #include <vector>
@@ -13,8 +14,24 @@ class Interpreter
 {
     // Old path, used for cd -
     std::string m_old_path;
+
+    // Current path, used for cd -
     std::string m_curr_path;
+
+    // If true, we will print a new line after each command 
+    // So the terminal will look cleaner
+    bool m_beautify;
+
+    // If we use the separator &, the commands will be executed in background
+    // This means that we will not wait for the child process to finish
+    bool m_is_background;
+
+    // Process id of the child process
+    // We need it for the signal handlers
     pid_t m_child_pid;
+
+    // Queue of background processes
+    std::queue<pid_t> m_background_processes;
 
     Interpreter();
 
@@ -58,13 +75,31 @@ class Interpreter
     // Handler for OR operator
     int operator_or(const std::vector<std::string>&, const std::vector<std::string>&);
 
-    // Handler for SEMICOLON operator
-    int operator_semicolon(const std::vector<std::string>&, const std::vector<std::string>&);
+    // Handler for separators
+    // If the separator is ;, call the function with the bool false
+    // If the separator is &, call the function with the bool true
+    int separator(const std::vector<std::string>&, const std::vector<std::string>&, bool a_background = false);
 
     // Finds the operator according to which we split the command
     int evaluate_command(const std::vector<std::string>&);
 
+    // Function to evaluate the exit and quit commands
+    int evaluate_exit();
+
+    // Function to evaluate the clear command
+    int evaluate_clear();
+
+    // Function to evaluate the pwd command
+    int evaluate_pwd(int);
+
+    // Function to evaluate the cd command
+    int evaluate_cd(const std::vector<std::string>&, int, int, int);
+
+    // Function to evaluate the history command
+    int evaluate_history(const std::vector<std::string>&, int, int);
+
     // Evaluates an instruction and returns the exit status
+    // !! Very Important: 0 = failure, 1 = success !!
     int evaluate_instr(const std::vector<std::string>&, int a_fd_to_close = -1, int a_fd_to_dup = -1);
 
     // Checks if the given string is an operator

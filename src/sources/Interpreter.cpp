@@ -319,17 +319,20 @@ int Interpreter::operator_or(const std::vector<std::string>& a_left, const std::
     return 1;
 }
 
-int Interpreter::operator_semicolon(const std::vector<std::string>& a_left, const std::vector<std::string>& a_right)
+int Interpreter::separator(const std::vector<std::string>& a_left, const std::vector<std::string>& a_right, bool a_background)
 {
+    this->m_is_background = a_background; // We set the background flag so we know whether to wait for the child process or not
+
     evaluate_command(a_left);
     evaluate_command(a_right);
-    return 1; // We return 1 because the semicolon operator doesn't care about the exit value of the commands
+
+    return 1; // We return 1 because the separator doesn't care about the exit value of the commands
 }
 
 // Checks if the string is an operator
 bool Interpreter::is_operator(const std::string& a_operator)
 {
-    const std::vector<std::string> operators{ "|", ">", ">>", "<", "&&", "||", ";" };
+    const std::vector<std::string> operators{ "|", ">", ">>", "<", "&&", "||", ";", "&" };
     for (const std::string& op : operators)
     {
         if (a_operator == op)
@@ -400,29 +403,180 @@ int Interpreter::evaluate_command(const std::vector<std::string>& a_tokens)
         }
         else if (a_tokens[operator_idx] == ";")
         {
-            return operator_semicolon(left, right);
+            return separator(left, right);
+        }
+        else if (a_tokens[operator_idx] == "&")
+        {
+            return separator(left, right, true);
         }
         return 0;
     }
     return evaluate_instr(a_tokens);
 }
 
+int Interpreter::evaluate_exit()
+{
+    this->m_beautify = false;
+    Interface& interface{ Interface::get_instance() };
+    interface.abort();
+    interface.config_terminal(false);
+    interface.clear();
+    return 1;
+}
+
+int Interpreter::evaluate_clear()
+{
+    this->m_beautify = false;
+    Interface& interface{ Interface::get_instance() };
+    interface.clear();
+    interface.print_logo();
+    return 1;
+}
+
+int Interpreter::evaluate_pwd(int a_fd)
+{
+    std::string directory{ std::filesystem::current_path().string() };
+    directory[0] = toupper(directory[0]);
+
+    write(a_fd, directory.c_str(), directory.size());
+    write(a_fd, "\n", 1);
+
+    return 1;
+}
+
+int Interpreter::evaluate_cd(const std::vector<std::string>& a_tokens, int a_fd, int a_exec_idx, int a_offset)
+{
+    std::filesystem::path new_path{};
+
+    if (a_exec_idx + 1 == static_cast<int>(a_tokens.size())) // cd is the same as cd ~
+    {
+        const char* home_env{ getenv("HOME") };
+        new_path = (home_env != nullptr) ? home_env : "";
+
+        if (new_path == "") // If HOME is not set, cd ~ will not work
+        {
+            std::string warning{ "cd: HOME not set\n" };
+            write(a_fd, warning.c_str(), warning.size());
+            return 0;
+        }
+    }
+    else
+    {
+        std::string command{ Tokenizer::detokenize(a_tokens) };
+        std::string directory{ command.substr(3 + a_offset, command.length() - (3 + a_offset)) };
+
+        if (directory == "-")
+        {
+            if (this->m_old_path.empty())  // If cd was never used before, cd - will not work
+            {
+                std::string warning{ "cd: OLDPWD not set\n" };
+                write(a_fd, warning.c_str(), warning.size());
+                return 0;
+            }
+
+            write(a_fd, this->m_old_path.c_str(), this->m_old_path.size());
+            write(a_fd, "\n", 1);
+            new_path = this->m_old_path;
+        }
+        else
+        {
+            // Checks if the directory is between quotes or has the last quote missing
+            if (command[3 + a_offset] == '\"')
+            {
+                if (command[command.length() - 1] == '\"')
+                {
+                    directory = directory.substr(1, directory.length() - 2);
+                }
+                else
+                {
+                    directory = directory.substr(1, directory.length() - 1);
+                }
+            }
+            new_path = std::filesystem::current_path() / directory;
+        }
+    }
+
+    if (std::filesystem::exists(new_path)) // If the directory exists, we change the current path
+    {
+        std::filesystem::current_path(new_path);
+
+        // If the current path is different from the new one, 
+        // we update the old path and the current path
+        if (this->m_curr_path != new_path.string())
+        {
+            this->m_old_path = this->m_curr_path;
+            this->m_curr_path = std::filesystem::current_path().string();
+        }
+    }
+    else // Else, we print an error message
+    {
+        std::string warning{ "Invalid directory\n" };
+        write(a_fd, warning.c_str(), warning.size());
+        return 0;
+    }
+    return 1;
+}
+
+int Interpreter::evaluate_history(const std::vector<std::string>& a_tokens, int a_fd, int a_offset)
+{
+    HistoryManager& manager{ HistoryManager::get_instance() };
+    std::string command{ Tokenizer::detokenize(a_tokens) };
+    int number{ 0 };
+
+    // If the command isn't only history
+    if (static_cast<int>(command.length()) > 9 + a_offset)
+    {
+        // If the command is history -c, clear the history
+        if (command[9 + a_offset] == 'c')
+        {
+            std::string message{ "Successfully cleared history\n" };
+
+            write(a_fd, message.c_str(), message.size());
+            manager.clear_history();
+
+            return 1;
+        }
+        // For testing, -n outputs the count of elements
+        else if (command[9 + a_offset] == 'n')
+        {
+            int no_elements{ manager.get_instr_count() };
+            char message[64]{ "" };
+
+            sprintf(message, "Number of stored commands is %d\n", no_elements);
+            write(a_fd, message, strlen(message));
+
+            return 1;
+        }
+        // If the command is history -number, print the last <number> commands
+        number = std::stoi(command.substr(9 + 5 * a_offset, command.length() - (8 + 5 * a_offset)));
+    }
+
+    // If number is 0, print all the commands
+    // Else, print the last <number> commands
+    int no_elements{ manager.get_instr_count() };
+    if (number == 0 || number > no_elements)
+    {
+        number = no_elements;
+    }
+    --number;
+
+    while (number > -1)
+    {
+        const char* instr{ manager.get_instr(number)->c_str() };
+        write(a_fd, instr, strlen(instr));
+        write(a_fd, "\n", 1);
+        --number;
+    }
+    return 1;
+}
+
+// !! Very Important: 0 = failure, 1 = success !!
 int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_fd_to_close, int a_fd_to_dup)
 {
-    Interface& interface{ Interface::get_instance() };
-
-    if (interface.is_aborted())
+    if (Interface::get_instance().is_aborted())
     {
         return 0;
     }
-
-    // Get the whole command from the tokens
-    std::string command{ "" };
-    for (const std::string& token : a_tokens)
-    {
-        command += token + ' ';
-    }
-    command.pop_back(); // pop last space
 
     int fd{ a_fd_to_dup };
     if (fd == -1)
@@ -432,10 +586,8 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_
 
     // If we have sudo at the beginning, the offset will be 5
     int offset{ 0 };
-
-    // We find the executable index, it's either the first or second one
     int exec_idx{ 0 };
-    if (a_tokens[0] == "sudo")
+    if (a_tokens[0] == "sudo") // We find the executable index, it's either the first or second one
     {
         ++exec_idx;
         offset = 5;
@@ -444,149 +596,29 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_
     // Mostly used for testing before solving Ctrl + C
     if (a_tokens[exec_idx] == "quit" || a_tokens[exec_idx].substr(0, 4) == "exit")
     {
-        while (wait(nullptr) > 0);
-        interface.abort();
-        interface.config_terminal(false);
-        interface.clear();
-        return 1;
+        return evaluate_exit();
     }
-    if (a_tokens[exec_idx] == "history")
+    if (a_tokens[exec_idx] == "clear")
     {
-        HistoryManager& manager{ HistoryManager::get_instance() };
-        int number{ 0 };
-
-        // If the command isn't only history
-        if (static_cast<int>(command.length()) > 9 + offset)
-        {
-            // If the command is history -c, clear the history
-            if (command[9 + offset] == 'c')
-            {
-                if (a_fd_to_dup == -1)
-                {
-                    // fd=1 because it represents stdout
-                    write(1, "Successfully cleared history\n\n", 30);
-                }
-                else
-                {
-                    write(a_fd_to_dup, "Successfully cleared history\n\n", 30);
-                }
-                manager.clear_history();
-                return 1;
-            }
-            // For testing, -n outputs the count of elements
-            else if (command[9 + offset] == 'n')
-            {
-                int no_elements{ manager.get_instr_count() };
-
-                char message[64] = "";
-                sprintf(message, "Number of stored commands is %d\n", no_elements);
-                write(fd, message, strlen(message));
-
-                return 1;
-            }
-            // If the command is history -number, print the last <number> commands
-            number = std::stoi(command.substr(9 + 5 * offset, command.length() - (8 + 5 * offset)));
-        }
-
-        // If number is 0, print all the commands
-        // Else, print the last <number> commands
-        int no_elements{ manager.get_instr_count() };
-        if (number == 0 || number > no_elements)
-        {
-            number = no_elements;
-        }
-        --number;
-
-        while (number > -1)
-        {
-            const char* instr{ manager.get_instr(number)->c_str() };
-            write(fd, instr, strlen(instr));
-            write(fd, "\n", 1);
-            --number;
-        }
-    }
-    else if (a_tokens[exec_idx] == "clear")
-    {
-        interface.clear();
-        interface.print_logo();
+        return evaluate_clear();
     }
     else if (a_tokens[exec_idx] == "pwd")
     {
-        std::string directory{ std::filesystem::current_path().string() };
-        directory[0] = toupper(directory[0]);
-
-        write(fd, directory.c_str(), directory.size());
-        write(fd, "\n", 1);
+        return evaluate_pwd(fd);
     }
     else if (a_tokens[exec_idx] == "cd")
     {
-        std::filesystem::path new_path{};
-
-        if (exec_idx + 1 == static_cast<int>(a_tokens.size())) // cd is the same as cd ~
-        {
-            const char* home_env{ getenv("HOME") };
-            new_path = (home_env != nullptr) ? home_env : "";
-
-            if (new_path == "") // If HOME is not set, cd ~ will not work
-            {
-                std::string warning{ "cd: HOME not set\n" };
-                write(fd, warning.c_str(), warning.size());
-                return 0;
-            }
-        }
-        else
-        {
-            std::string directory{ command.substr(3 + offset, command.length() - (3 + offset)) };
-
-            if (directory == "-")
-            {
-                if (this->m_old_path.empty())  // If cd was never used before, cd - will not work
-                {
-                    std::string warning{ "cd: OLDPWD not set\n" };
-                    write(fd, warning.c_str(), warning.size());
-                    return 0;
-                }
-
-                write(fd, this->m_old_path.c_str(), this->m_old_path.size());
-                new_path = this->m_old_path;
-            }
-            else
-            {
-                // Checks if the directory is between quotes or has the last quote missing
-                if (command[3 + offset] == '\"')
-                {
-                    if (command[command.length() - 1] == '\"')
-                    {
-                        directory = directory.substr(1, directory.length() - 2);
-                    }
-                    else
-                    {
-                        directory = directory.substr(1, directory.length() - 1);
-                    }
-                }
-                new_path = std::filesystem::current_path() / directory;
-            }
-        }
-
-        if (std::filesystem::exists(new_path))
-        {
-            std::filesystem::current_path(new_path);
-
-            if (this->m_curr_path != new_path.generic_string())
-            {
-                this->m_old_path = this->m_curr_path;
-                this->m_curr_path = std::filesystem::current_path().generic_string();
-            }
-        }
-        else
-        {
-            std::string warning{ "Invalid directory\n" };
-            write(fd, warning.c_str(), warning.size());
-        }
+        return evaluate_cd(a_tokens, fd, exec_idx, offset);
     }
-    // If the user actually entered a command, add it to the history
-    else if (command != "")
+    else if (a_tokens[exec_idx] == "history")
     {
+        return evaluate_history(a_tokens, fd, offset);
+    }
+    else if (!a_tokens.empty()) // If the user actually entered a command, add it to the history
+    {
+        // We prepare argv for the execvp system call
+        // argv is an array of strings, where the first element is the executable name,
+        // the last element is nullptr and the rest are the arguments
         int argc{ static_cast<int>(a_tokens.size()) };
         char** argv{ new char*[argc + 1] };
 
@@ -597,6 +629,10 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_
         argv[argc] = nullptr;
 
         this->m_child_pid = fork();
+
+        // We add the child process to the queue of background processes
+        this->m_background_processes.push(this->m_child_pid); 
+
         if (this->m_child_pid == -1)
         {
             perror("Error forking");
@@ -616,20 +652,35 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_
                 return 0;
             }
         }
-        int status{};
-        int result{ waitpid(this->m_child_pid, &status, 0) };
-        delete[] argv;
-        if (result == -1)
+        delete[] argv; // We don't need argv anymore, so we free the memory
+        if (!this->m_is_background) // No separator &, so we wait for the child process to finish
         {
-            perror("Error waiting for child process");
+            int status{};
+            int result{ waitpid(this->m_child_pid, &status, 0) };
+            if (result == -1)
+            {
+                perror("Error waiting for child process");
+                return 0;
+            }
+            if (WIFEXITED(status))
+            {
+                return !WEXITSTATUS(status);
+            }
             return 0;
         }
-        if (WIFEXITED(status))
+        else
         {
-            return !WEXITSTATUS(status);
+            // We wait for all the background processes to finish
+            while (waitpid(this->m_background_processes.front(), nullptr, WNOHANG) > 0)
+            {
+                this->m_background_processes.pop();
+            }
+            usleep(1000); // We wait so that the child processes have time to finish
+            return 1;
         }
-        return 0;
     }
+
+    // User entered nothing or CTRL + D, we ignore those
     return 1;
 }
 
@@ -637,13 +688,17 @@ void Interpreter::evaluate_command(const std::string& a_command,const std::strin
 {
     // modified_command is the command where we replace both !! and ~
     std::string modified_command = this->modify_command(a_command, 1);
-    std::cout << modified_command << std::endl;
+
     if (!modified_command.empty())
     {
+        this->m_beautify = true;
+        this->m_is_background = false;
+
         // special_command is the command where we replace only !!
         std::string special_command{ this->modify_command(a_command, 0) };
         if (special_command != a_command)
         {
+            // We show the user the command that will be executed
             write(0, special_command.c_str(), special_command.size());
             write(0, "\n", 1);
         }
@@ -655,6 +710,12 @@ void Interpreter::evaluate_command(const std::string& a_command,const std::strin
         this->evaluate_command(tokens);
 
         HistoryManager::get_instance().add_instr(special_command);
+
+        // If the command is not clear, we print a new line to make the terminal look cleaner
+        if (this->m_beautify)
+        {
+            std::cout << '\n';
+        }
     }
 }
 

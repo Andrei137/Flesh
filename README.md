@@ -74,16 +74,16 @@ cd ../bin
 - Operatori Logici
     - [x] Operatorul &&
         - Executa comanda urmatoare doar daca prima comanda a avut succes
-        - Utilizare: gcc test.cpp -o test && ./test
+        - Utilizare: g++ test.cpp -o test && ./test
     - [x] Operatorul ||
         - Executa comanda urmatoare doar daca prima comanda a avut esec
-        - Utilizare: gcc test.cpp -o test || echo "Compilation failed"
+        - Utilizare: g++ test.cpp -o test || echo "Compilation failed"
 
 - Control Flow
     - [x] Separatorul ;
         - Permite executia mai multor comenzi secvential
         - Utilizare: sleep 10; echo "Hello World!"
-    - [ ] Separatorul '&'
+    - [x] Separatorul '&'
         - Permite executia mai multor comenzi in background
         - Utilizare: echo "Hello World 1!" & sleep 10 & echo "Hello World 2!"
 

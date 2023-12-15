@@ -78,4 +78,16 @@ namespace Tokenizer
         tokens.push_back(curr_token);
         return tokens;
     }
+
+    // This function detokenizes a vector of tokens
+    std::string detokenize(const std::vector<std::string>& a_tokens)
+    {
+        std::string command{ "" };
+        for (const auto& token : a_tokens)
+        {
+            command += token + " ";
+        }
+        command.pop_back();
+        return command;
+    }
 }

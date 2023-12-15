@@ -244,6 +244,12 @@ std::string Interface::get_command()
                 // The file_name is everything after the last /, most likely a part of the file name
                 std::string directory{ path.substr(0, path.find_last_of('/')) };
                 std::string file_name{ path.substr(path.find_last_of('/') + 1, path.length() - path.find_last_of('/')) };
+
+                if (!std::filesystem::exists(directory))
+                {
+                    // The directory doesn't exist, so we can't autocomplete
+                    continue;
+                }
                 
                 // Get all the files from the directory
                 std::vector<std::string> files{};
@@ -304,6 +310,14 @@ std::string Interface::get_command()
                         if (curr_ch == '\t' || curr_ch == ' ')
                         {
                             continue;
+                        }
+                        // If the user pressed backspace, get back to the default ones
+                        else if (curr_ch == BACKSPACE)
+                        {
+                            m_command = default_command;
+                            cursor_position = default_cursor_position;
+                            refresh_display(cursor_position);
+                            break;
                         }
                         // If the user pressed enter or any other character, it means that they want to use the current match
                         else
