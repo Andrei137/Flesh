@@ -75,7 +75,9 @@ std::string Interpreter::modify_command(const std::string& a_old_command,bool a_
     // Modifying the initial command to replace !! and ~
     // If a_change_all is 0, we only change !!
     // Else we change both
-    std::string home_path { *getenv("HOME") };
+    const char* home_env = getenv("HOME");
+    std::string home_path = (home_env != nullptr) ? home_env : "";
+
     std::string modified_command, last_command { *HistoryManager::get_instance().get_instr(0) };
     for(int i = 0; i < static_cast<int>(a_old_command.size()); ++i)
     {
@@ -525,8 +527,14 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_
 
         if (exec_idx + 1 == static_cast<int>(a_tokens.size())) // because cd to work as cd ~
         {
-            std::string aux { *getenv("HOME") };
-            new_path = aux;
+            const char* home_env = getenv("HOME");
+            new_path = (home_env != nullptr) ? home_env : "";
+
+            if (new_path == "")
+            {
+                write(fd, "cd: HOME not set\n", 17);
+                return 0;
+            }
         }
         else
         {
