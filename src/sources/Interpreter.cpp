@@ -70,54 +70,54 @@ void Interpreter::handle_sigtstp(int)
     }
 }
 
-std::string Interpreter::modify_command(const std::string& a_old_command,bool a_change_all)
-{
-    // Modifying the initial command to replace !! and ~
-    // If a_change_all is 0, we only change !!
-    // Else we change both
-    const char* home_env = getenv("HOME");
-    std::string home_path = (home_env != nullptr) ? home_env : "";
+// std::string Interpreter::modify_command(const std::string& a_old_command, bool a_change_all)
+// {
+//     // Modifying the initial command to replace !! and ~
+//     // If a_change_all is 0, we only change !!
+//     // Else we change both
+//     const char* home_env = getenv("HOME");
+//     std::string home_path = (home_env != nullptr) ? home_env : "";
 
-    std::string modified_command, last_command { *HistoryManager::get_instance().get_instr(0) };
-    for(int i = 0; i < static_cast<int>(a_old_command.size()); ++i)
-    {
-        // If we encounter an apostrophe, we continue until that apostrophe is closed
-        if(a_old_command[i] == '\'')
-        {
-            ++i;
-            while (i < static_cast<int>(a_old_command.size()))
-            {
-                if (a_old_command[i] == '\'')
-                {
-                    break;
-                }
-                else
-                {
-                    modified_command += a_old_command[i];
-                }
-                ++i;
-            }
-        }
-        // If we encounter !! we replace it with the last command
-        else if(a_old_command[i] == '!' && i != static_cast<int>(a_old_command.size())-1 && a_old_command[i+1] == '!')
-        {
-            modified_command += last_command;
-            i++;
-        }
-        // If we encounter ~ and before it is a space and after it is (nothing or space or /) we change it into home_path
-        else if(a_change_all && a_old_command[i]=='~' && i != 0 && a_old_command[i-1] == ' '
-            && (i == static_cast<int>(a_old_command.size())-1
-            || (i != static_cast<int>(a_old_command.size())-1 && (a_old_command[i+1]==' ' || a_old_command[i+1]=='/'))))
-        {
-            modified_command += home_path;
-        }
-        else
-        {
-            modified_command += a_old_command[i];
-        }
-    }
-    return modified_command;
-}
+//     std::string modified_command, last_command { *HistoryManager::get_instance().get_instr(0) };
+//     for(int i = 0; i < static_cast<int>(a_old_command.size()); ++i)
+//     {
+//         // If we encounter an apostrophe, we continue until that apostrophe is closed
+//         if(a_old_command[i] == '\'')
+//         {
+//             ++i;
+//             while (i < static_cast<int>(a_old_command.size()))
+//             {
+//                 if (a_old_command[i] == '\'')
+//                 {
+//                     break;
+//                 }
+//                 else
+//                 {
+//                     modified_command += a_old_command[i];
+//                 }
+//                 ++i;
+//             }
+//         }
+//         // If we encounter !! we replace it with the last command
+//         else if(a_old_command[i] == '!' && i != static_cast<int>(a_old_command.size())-1 && a_old_command[i+1] == '!')
+//         {
+//             modified_command += last_command;
+//             i++;
+//         }
+//         // If we encounter ~ and before it is a space and after it is (nothing or space or /) we change it into home_path
+//         else if(a_change_all && a_old_command[i]=='~' && i != 0 && a_old_command[i-1] == ' '
+//             && (i == static_cast<int>(a_old_command.size())-1
+//             || (i != static_cast<int>(a_old_command.size())-1 && (a_old_command[i+1]==' ' || a_old_command[i+1]=='/'))))
+//         {
+//             modified_command += home_path;
+//         }
+//         else
+//         {
+//             modified_command += a_old_command[i];
+//         }
+//     }
+//     return modified_command;
+// }
 
 int Interpreter::operator_pipe(const std::vector<std::string>& a_left, const std::vector<std::string>& a_right)
 {
@@ -639,18 +639,18 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_
 void Interpreter::evaluate_command(const std::string& a_command,const std::string& a_path)
 {
     // modified_command is the command where we replace both !! and ~
-    std::string modified_command = this->modify_command(a_command,1);
-    std::vector<std::string> tokens{ Tokenizer::tokenize(modified_command) };
-    if (!modified_command.empty())
+    // std::string modified_command = this->modify_command(a_command,1);
+    std::vector<std::string> tokens{ Tokenizer::tokenize(a_command) };
+    if (!a_command.empty())
     {
         // speical_command is the command where we replace only !!
-        std::string special_command = this->modify_command(a_command,0);
-        if(special_command!=a_command)
-        {
-            write(0, special_command.c_str(), special_command.size());
-            write(0, "\n", 1);
-        }
-        HistoryManager::get_instance().add_instr(special_command);
+        // std::string special_command = this->modify_command(a_command,0);
+        // if(special_command!=a_command)
+        // {
+        //     write(0, special_command.c_str(), special_command.size());
+        //     write(0, "\n", 1);
+        // }
+        HistoryManager::get_instance().add_instr(a_command);
     }
     this->m_curr_path = a_path;
     this->m_curr_path.pop_back();
