@@ -258,6 +258,7 @@ int Interpreter::operator_output_append(const std::vector<std::string>& a_left, 
     // If the command is "> output.txt"
     if (a_left.empty())
     {
+        fclose(destination_file);
         return 1;
     }
 
