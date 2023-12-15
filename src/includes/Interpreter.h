@@ -80,8 +80,14 @@ class Interpreter
     // If the separator is &, call the function with the bool true
     int separator(const std::vector<std::string>&, const std::vector<std::string>&, bool a_background = false);
 
+    // Checks if the given string is an operator
+    bool is_operator(const std::string&);
+     
+    // Finds the index of the operator which splits the command
+    int current_operator(const std::vector<std::string>&);
+
     // Finds the operator according to which we split the command
-    int evaluate_command(const std::vector<std::string>&);
+    int evaluate_command(const std::vector<std::string>&, int a_fd_to_close = -1, int a_fd_to_dup = -1);
 
     // Function to evaluate the exit and quit commands
     int evaluate_exit();
@@ -101,9 +107,6 @@ class Interpreter
     // Evaluates an instruction and returns the exit status
     // !! Very Important: 0 = failure, 1 = success !!
     int evaluate_instr(const std::vector<std::string>&, int a_fd_to_close = -1, int a_fd_to_dup = -1);
-
-    // Checks if the given string is an operator
-    bool is_operator(const std::string&);
 
 public:
     void evaluate_command(const std::string&,const std::string&);

@@ -128,80 +128,66 @@ int Interpreter::operator_pipe(const std::vector<std::string>& a_left, const std
         // fd[1] - write
         int fd[2];
 
-        pipe(fd);
+        if (pipe(fd) < 0)
+        {
+            perror("Error creating pipe");
+            exit(EXIT_FAILURE);
+        }
 
         pid_t grandson = fork(); // The child creates another child that will execute the first command
         if (grandson < 0)
         {
             perror("Error at second fork");
-            return 0;
+            exit(EXIT_FAILURE);
         }
 
         if (grandson == 0)
         {
-            // Closes the read end because we will not use it
+            // Grandson code for the left command
+
+            // Close the read end because we will not use it
             close(fd[0]);
 
-            // Closes the file descriptor with id=1, which is stdout
-            // and creates a copy for fd[1], and then assigns to it the id 1.
-            // The old descriptor is not closed! Both may be used interchangeably
-            // When we will call execvp system call, the program we start will write using fd[1]
-            // dup2(fd[1], 1);
-
-            int left_status{ evaluate_instr(a_left, 1, fd[1]) };
-
-            // Closes the write end
+            // Redirect stdout to the write end of the pipe
+            dup2(fd[1], STDOUT_FILENO);
             close(fd[1]);
 
+            // Execute the left command
+            int left_status{ evaluate_command(a_left) };
+                
             // We stop the grandson with an exit value equal to the opposite of Flesh implementation
             // i.e. if it was successful then we exit(0); if it failed then we exit(1)
             exit(!left_status);
         }
 
-        // Child code
+        // Child code for the right command
 
-        int status{};
+        // Close the write end because we will not use it
+        close(fd[1]);
+
+        // Redirect stdin to the read end of the pipe
+        dup2(fd[0], STDIN_FILENO);
+        close(fd[0]);
+
+        // Execute the right command
+        evaluate_command(a_right);
+
+        int status;
         waitpid(grandson, &status, WUNTRACED);
         int grandson_return{ WEXITSTATUS(status) };
 
-        // Closes the write end because it will not use it
-        close(fd[1]);
-
-        if (grandson_return != 0)
-        {
-            // First command returned an error; We return that we failed
-
-            // Closes the other end of the pipe, which should also free the memory
-            close(fd[0]);
-
-            exit(grandson_return);
-        }
-
-        // Closes the file descriptor with id 0, which is stdin
-        // and creates a copy for fd[0], and then assign to it the id 0.
-        // The old descriptor is not closed! Both may be used interchangeably
-        // When we will call system call execvp, the program we start will read with fd[0]
-        // dup2(fd[0], 0);
-
-        int right_status{ evaluate_instr(a_right, 0, fd[0]) };
-
-        // Closes the other end of the pipe, which should also free the memory
-        close(fd[0]);
-
-        // We stop the child with an exit value equal to the opposite of Flesh implementation
-        // i.e. if it was successful then we exit(0); if it failed then we exit(1)
-        exit(!right_status);
+        exit(grandson_return);
     }
 
     // Flesh code.
 
-    // Get exit value and return accordingly
+    // Wait for the son to complete
     int status{};
     waitpid(son, &status, WUNTRACED);
     int son_return{ WEXITSTATUS(status) };
 
-    // We return a success value equal to the opposite of son exit value
-    // i.e. if it was successful then we return 1; if it failed then we return 0
+    // Return a success value equal to the opposite of son exit value
+    // i.e., if it was successful, then we return 1; if it failed, then we return 0
     return !son_return;
 }
 
@@ -212,7 +198,7 @@ int Interpreter::operator_output(const std::vector<std::string>& a_left, const s
     if (destination_file_fd < 0)
     {
         std::cout << "An error occurred when opening the destination file\n";
-        return errno;
+        return 0;
     }
 
     // If the command is "> output.txt"
@@ -228,7 +214,7 @@ int Interpreter::operator_output(const std::vector<std::string>& a_left, const s
     // dup2(destination_file_fd, 1);
 
     // We execute the first command, which will write to the destination_file
-    int success_val{ evaluate_instr(a_left, 1, destination_file_fd) };
+    int success_val{ evaluate_command(a_left, 1, destination_file_fd) };
 
     // Closing the file descriptor
     close(destination_file_fd);
@@ -244,7 +230,7 @@ int Interpreter::operator_output_append(const std::vector<std::string>& a_left, 
     if (!destination_file)
     {
         std::cout << "An error occurred when opening the pipe file\n";
-        return errno;
+        return 0;
     }
 
     // If the command is "> output.txt"
@@ -264,7 +250,7 @@ int Interpreter::operator_output_append(const std::vector<std::string>& a_left, 
     // dup2(fd, 1);
 
     // We execute the first command, which will append to the destination_file
-    int status{ evaluate_instr(a_left, 1, fd) };
+    int status{ evaluate_command(a_left, 1, fd) };
 
     fclose(destination_file);
     return status;
@@ -277,7 +263,7 @@ int Interpreter::operator_input(const std::vector<std::string>& a_left, const st
     if (source_file_fd < 0)
     {
         std::cout << "Source file does not exist\n";
-        return errno;
+        return 0;
     }
 
     // Closes the file descriptor with id=0, which is stdin
@@ -287,7 +273,7 @@ int Interpreter::operator_input(const std::vector<std::string>& a_left, const st
     // dup2(source_file_fd, 0);
 
     // We execute the first command, which will take the input from source_file
-    int success_val{ evaluate_instr(a_left, 0, source_file_fd) };
+    int success_val{ evaluate_command(a_left, 0, source_file_fd) };
 
     // Closing the file descriptor
     close(source_file_fd);
@@ -343,25 +329,82 @@ bool Interpreter::is_operator(const std::string& a_operator)
     return false;
 }
 
-int Interpreter::evaluate_command(const std::vector<std::string>& a_tokens)
+// We find the least important operator and return its index
+// The priorities are: |, >, >>, <, &&, ||, ;, &
+// | has right-to-left associativity
+// The rest have left-to-right associativity
+// If there are no operators, we return -1
+int Interpreter::current_operator(const std::vector<std::string>& a_tokens)
+{
+    int operator_idx{ -1 };
+    int priority{ 0 };
+
+    for (int i = 0; i < static_cast<int>(a_tokens.size()); ++i)
+    {
+        if (a_tokens[i] == "|")
+        {
+            if (priority <= 1)
+            {
+                priority = 1;
+                operator_idx = i;
+            }
+        }
+        else if (a_tokens[i] == ">" || a_tokens[i] == ">>" || a_tokens[i] == "<")
+        {
+            if (priority < 2)
+            {
+                priority = 2;
+                operator_idx = i;
+            }
+        }
+        else if (a_tokens[i] == "&&")
+        {
+            if (priority < 3)
+            {
+                priority = 3;
+                operator_idx = i;
+            }
+        }
+        else if (a_tokens[i] == "||")
+        {
+            if (priority < 4)
+            {
+                priority = 4;
+                operator_idx = i;
+            }
+        }
+        else if (a_tokens[i] == ";")
+        {
+            if (priority < 5)
+            {
+                priority = 5;
+                operator_idx = i;
+            }
+        }
+        else if (a_tokens[i] == "&")
+        {
+            if (priority < 6)
+            {
+                priority = 6;
+                operator_idx = i;
+            }
+        }
+    }
+    return operator_idx;
+}
+
+int Interpreter::evaluate_command(const std::vector<std::string>& a_tokens, int a_fd_to_close, int a_fd_to_dup)
 {
     if (a_tokens.size() == 0u || Interface::get_instance().is_aborted())
     {
         return 0;
     }
 
-    // Find the first operator
-    // We will change this later considering the priority of the operators
-    int operator_idx{};
-    for (operator_idx = 0; operator_idx < static_cast<int>(a_tokens.size()); ++operator_idx)
-    {
-        if (this->is_operator(a_tokens[operator_idx]))
-        {
-            break;
-        }
-    }
+    // Find the lowest priority operator
+    // So we can split the command into two parts and evaluate them separately
+    int operator_idx{ current_operator(a_tokens) };
 
-    if (operator_idx != static_cast<int>(a_tokens.size()))
+    if (operator_idx != -1)
     {
         // We build the left and the right vectors
         std::vector<std::string> left{}, right{};
@@ -411,7 +454,7 @@ int Interpreter::evaluate_command(const std::vector<std::string>& a_tokens)
         }
         return 0;
     }
-    return evaluate_instr(a_tokens);
+    return evaluate_instr(a_tokens, a_fd_to_close, a_fd_to_dup);
 }
 
 int Interpreter::evaluate_exit()
