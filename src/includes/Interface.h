@@ -48,6 +48,8 @@ public:
     // We set m_aborted to true
     void abort();
 
+    bool is_aborted() const;
+
     // Clears the screen
     void clear();
 

@@ -30,7 +30,6 @@ Interpreter::Interpreter() : m_old_path()
 void Interpreter::handle_sigint(int)
 {
     std::cout << "^C\n";
-
     Interpreter& interpreter{ Interpreter::get_instance() };
     int status{};
     if (waitpid(interpreter.m_child_pid, &status, WNOHANG) == 0)
@@ -65,7 +64,7 @@ void Interpreter::handle_sigtstp(int)
     int status{};
     if (waitpid(interpreter.m_child_pid, &status, WNOHANG) == 0)
     {
-        std::cout << "\nStopped\n";
+        std::cout << "\n^Z\nStopped\n";
         kill(interpreter.m_child_pid, SIGKILL);
     }
 }
@@ -75,11 +74,11 @@ void Interpreter::handle_sigtstp(int)
 // Else we change both
 std::string Interpreter::modify_command(const std::string& a_old_command, bool a_change_all)
 {
-    const char* home_env = getenv("HOME");
-    std::string home_path = (home_env != nullptr) ? home_env : "";
+    const char* home_env{ getenv("HOME") };
+    std::string home_path{ (home_env != nullptr) ? home_env : "" }; // If HOME is not set, we set it to "", so cd ~ will not work
 
     std::string modified_command{};
-    const std::string* last_command { HistoryManager::get_instance().get_instr(0) };
+    const std::string* last_command{ HistoryManager::get_instance().get_instr(0) };
     if (last_command == nullptr)
     {
         return a_old_command;
@@ -89,6 +88,7 @@ std::string Interpreter::modify_command(const std::string& a_old_command, bool a
     {
         if (a_old_command[i] == '!')
         {
+            // If we have !!, we replace it with the last command
             if (i + 1 < static_cast<int>(a_old_command.size()) && a_old_command[i + 1] == '!')
             {
                 modified_command += *last_command;
@@ -99,6 +99,7 @@ std::string Interpreter::modify_command(const std::string& a_old_command, bool a
                 modified_command += a_old_command[i];
             }
         }
+        // If we have ~, we replace it with the home path
         else if (a_old_command[i] == '~' && a_change_all)
         {
             modified_command += home_path;
@@ -177,7 +178,7 @@ int Interpreter::operator_pipe(const std::vector<std::string>& a_left, const std
             // Closes the other end of the pipe, which should also free the memory
             close(fd[0]);
 
-            return 0;
+            exit(grandson_return);
         }
 
         // Closes the file descriptor with id 0, which is stdin
@@ -211,7 +212,7 @@ int Interpreter::operator_pipe(const std::vector<std::string>& a_left, const std
 int Interpreter::operator_output(const std::vector<std::string>& a_left, const std::vector<std::string>& a_right)
 {
     // Opens the file in which we want to write
-    int destination_file_fd = open(a_right[0].c_str(), O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
+    int destination_file_fd{ open(a_right[0].c_str(), O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR) };
     if (destination_file_fd < 0)
     {
         std::cout << "An error occurred when opening the destination file\n";
@@ -242,17 +243,18 @@ int Interpreter::operator_output(const std::vector<std::string>& a_left, const s
 int Interpreter::operator_output_append(const std::vector<std::string>& a_left, const std::vector<std::string>& a_right)
 {
     // We open the destination file only to append to it
-    FILE *destination_file=fopen(a_right[0].c_str(),"a");
-    if(!destination_file)
+    FILE* destination_file{ fopen(a_right[0].c_str(), "a") };
+
+    if (!destination_file)
     {
-        std::cout<<"An error occurred when opening the pipe file\n";
+        std::cout << "An error occurred when opening the pipe file\n";
         return errno;
     }
 
     // If the command is "> output.txt"
     if (a_left.empty())
     {
-        fclose(destination_file);
+        fclose (destination_file);
         return 1;
     }
 
@@ -275,7 +277,7 @@ int Interpreter::operator_output_append(const std::vector<std::string>& a_left, 
 int Interpreter::operator_input(const std::vector<std::string>& a_left, const std::vector<std::string>& a_right)
 {
     // Opens the file from which we want to read
-    int source_file_fd = open(a_right[0].c_str(), O_RDONLY);
+    int source_file_fd{ open(a_right[0].c_str(), O_RDONLY) };
     if (source_file_fd < 0)
     {
         std::cout << "Source file does not exist\n";
@@ -331,7 +333,7 @@ int Interpreter::operator_semicolon(const std::vector<std::string>& a_left, cons
 // Checks if the string is an operator
 bool Interpreter::is_operator(const std::string& a_operator)
 {
-    const std::vector<std::string> operators{ "&&", "||", ";", "|", ">", ">>","<" };
+    const std::vector<std::string> operators{ "|", ">", ">>", "<", "&&", "||", ";" };
     for (const std::string& op : operators)
     {
         if (a_operator == op)
@@ -344,7 +346,7 @@ bool Interpreter::is_operator(const std::string& a_operator)
 
 int Interpreter::evaluate_command(const std::vector<std::string>& a_tokens)
 {
-    if (a_tokens.size() == 0u)
+    if (a_tokens.size() == 0u || Interface::get_instance().is_aborted())
     {
         return 0;
     }
@@ -413,18 +415,23 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_
 {
     Interface& interface{ Interface::get_instance() };
 
+    if (interface.is_aborted())
+    {
+        return 0;
+    }
+
     // Get the whole command from the tokens
     std::string command{ "" };
     for (const std::string& token : a_tokens)
     {
         command += token + ' ';
     }
-    command.pop_back();
+    command.pop_back(); // pop last space
 
     int fd{ a_fd_to_dup };
     if (fd == -1)
     {
-        fd = 1; // fd=1 because it represents stdout
+        fd = 1; // fd = 1 because it represents stdout
     }
 
     // If we have sudo at the beginning, the offset will be 5
@@ -441,6 +448,7 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_
     // Mostly used for testing before solving Ctrl + C
     if (a_tokens[exec_idx] == "quit" || a_tokens[exec_idx].substr(0, 4) == "exit")
     {
+        while (wait(nullptr) > 0);
         interface.abort();
         interface.config_terminal(false);
         interface.clear();
@@ -451,6 +459,7 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_
         HistoryManager& manager{ HistoryManager::get_instance() };
         int number{ 0 };
 
+        // If the command isn't only history
         if (static_cast<int>(command.length()) > 9 + offset)
         {
             // If the command is history -c, clear the history
@@ -497,7 +506,7 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_
             const char* instr{ manager.get_instr(number)->c_str() };
             write(fd, instr, strlen(instr));
             write(fd, "\n", 1);
-            number--;
+            --number;
         }
     }
     else if (a_tokens[exec_idx] == "clear")
@@ -515,16 +524,17 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_
     }
     else if (a_tokens[exec_idx] == "cd")
     {
-        std::filesystem::path new_path{ };
+        std::filesystem::path new_path{};
 
-        if (exec_idx + 1 == static_cast<int>(a_tokens.size())) // because cd to work as cd ~
+        if (exec_idx + 1 == static_cast<int>(a_tokens.size())) // cd is the same as cd ~
         {
-            const char* home_env = getenv("HOME");
+            const char* home_env{ getenv("HOME") };
             new_path = (home_env != nullptr) ? home_env : "";
 
-            if (new_path == "")
+            if (new_path == "") // If HOME is not set, cd ~ will not work
             {
-                write(fd, "cd: HOME not set\n", 17);
+                std::string warning{ "cd: HOME not set\n" };
+                write(fd, warning.c_str(), warning.size());
                 return 0;
             }
         }
@@ -534,17 +544,14 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_
 
             if (directory == "-")
             {
-                if(this->m_old_path.empty())
+                if (this->m_old_path.empty())  // If cd was never used before, cd - will not work
                 {
-                    std::string warning = "cd: OLDPWD not set";
+                    std::string warning{ "cd: OLDPWD not set\n" };
                     write(fd, warning.c_str(), warning.size());
-                    write(fd, "\n", 1);
                     return 0;
                 }
 
                 write(fd, this->m_old_path.c_str(), this->m_old_path.size());
-                write(fd, "\n", 1);
-
                 new_path = this->m_old_path;
             }
             else
@@ -577,7 +584,8 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_
         }
         else
         {
-            write(fd, "Invalid directory\n", 18);
+            std::string warning{ "Invalid directory\n" };
+            write(fd, warning.c_str(), warning.size());
         }
     }
     // If the user actually entered a command, add it to the history
@@ -632,21 +640,25 @@ void Interpreter::evaluate_command(const std::string& a_command,const std::strin
 {
     // modified_command is the command where we replace both !! and ~
     std::string modified_command = this->modify_command(a_command, 1);
-    std::vector<std::string> tokens{ Tokenizer::tokenize(modified_command) };
+    std::cout << modified_command << std::endl;
     if (!modified_command.empty())
     {
         // special_command is the command where we replace only !!
         std::string special_command{ this->modify_command(a_command, 0) };
-        if(special_command != a_command)
+        if (special_command != a_command)
         {
             write(0, special_command.c_str(), special_command.size());
             write(0, "\n", 1);
         }
+
+        this->m_curr_path = a_path;
+        this->m_curr_path.pop_back(); // Remove the > from the end of the path
+
+        std::vector<std::string> tokens{ Tokenizer::tokenize(modified_command) };
+        this->evaluate_command(tokens);
+
         HistoryManager::get_instance().add_instr(special_command);
     }
-    this->m_curr_path = a_path;
-    this->m_curr_path.pop_back();
-    this->evaluate_command(tokens);
 }
 
 Interpreter& Interpreter::get_instance()

@@ -365,6 +365,11 @@ void Interface::abort()
     this->m_aborted = true;
 }
 
+bool Interface::is_aborted() const
+{
+    return this->m_aborted;
+}
+
 void Interface::clear()
 {
     // \033c clears the screen and moves the cursor to the top left corner of the screen
