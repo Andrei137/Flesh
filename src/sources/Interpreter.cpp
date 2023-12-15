@@ -79,7 +79,11 @@ std::string Interpreter::modify_command(const std::string& a_old_command, bool a
     std::string home_path = (home_env != nullptr) ? home_env : "";
 
     std::string modified_command{};
-    std::string last_command { *HistoryManager::get_instance().get_instr(0) };
+    const std::string* last_command { HistoryManager::get_instance().get_instr(0) };
+    if (last_command == nullptr)
+    {
+        return a_old_command;
+    }
 
     for (int i = 0; i < static_cast<int>(a_old_command.size()); ++i)
     {
@@ -87,7 +91,7 @@ std::string Interpreter::modify_command(const std::string& a_old_command, bool a
         {
             if (i + 1 < static_cast<int>(a_old_command.size()) && a_old_command[i + 1] == '!')
             {
-                modified_command += last_command;
+                modified_command += *last_command;
                 ++i;
             }
             else

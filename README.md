@@ -130,6 +130,7 @@ cd ../bin
 - [Basic Signal Handling (pentru Ctrl + C)](https://www.gnu.org/software/libc/manual/html_node/Basic-Signal-Handling.html)
 - [Creating Pipes in C](https://tldp.org/LDP/lpg/node11.html#SECTION00722000000000000000)
 - [Execvp (pentru a executa comenzi)](https://linux.die.net/man/3/execvp)
+- [getenv (pentru ~)](https://www.tutorialspoint.com/c_standard_library/c_function_getenv.htm)
 - [Proper handling of SIGINT/SIGQUIT](https://www.cons.org/cracauer/sigint.html)
 - [Terminos (pentru functionalitatea sagetilor)](https://man7.org/linux/man-pages/man3/termios.3.html)
 - [Terminos syntax configuration with bitwise operators](https://stackoverflow.com/questions/48477989/termios-syntax-configuration-with-bitwise-operators)
