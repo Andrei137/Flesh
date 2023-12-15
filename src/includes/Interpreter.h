@@ -11,6 +11,9 @@
 
 class Interpreter
 {
+    // Old path, used for cd -
+    std::string m_old_path;
+    std::string m_curr_path;
     pid_t m_child_pid;
 
     Interpreter();
@@ -34,6 +37,21 @@ class Interpreter
     // This function must be static as it is a generic handler
     static void handle_sigtstp(int);
 
+    // This function replaces !! and ~
+    std::string modify_command(const std::string&,bool);
+
+    // Handler for PIPE operator
+    int operator_pipe(const std::vector<std::string>&, const std::vector<std::string>&);
+
+    // Handler for OUTPUT(>) operator
+    int operator_output(const std::vector<std::string>&, const std::vector<std::string>&);
+
+    // Handler for OUTPUT APPEND(>>) operator
+    int operator_output_append(const std::vector<std::string>&, const std::vector<std::string>&);
+
+    // Handler for INPUT(<) operator
+    int operator_input(const std::vector<std::string>&, const std::vector<std::string>&);
+
     // Handler for AND operator
     int operator_and(const std::vector<std::string>&, const std::vector<std::string>&);
 
@@ -42,9 +60,6 @@ class Interpreter
 
     // Handler for SEMICOLON operator
     int operator_semicolon(const std::vector<std::string>&, const std::vector<std::string>&);
-
-    // Handler for PIPE operator
-    int operator_pipe(const std::vector<std::string>&, const std::vector<std::string>&);
 
     // Finds the operator according to which we split the command
     int evaluate_command(const std::vector<std::string>&);
@@ -56,7 +71,7 @@ class Interpreter
     bool is_operator(const std::string&);
 
 public:
-    void evaluate_command(const std::string&);
+    void evaluate_command(const std::string&,const std::string&);
 
     static Interpreter& get_instance();
 };

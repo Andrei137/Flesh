@@ -52,13 +52,8 @@ cd ../bin
         - Afiseaza numarul de comenzi din istoric
     - [x] history -number
         - Afiseaza ultimele [number] comenzi
-    - [ ] !!
+    - [x] !!
         - Executa ultima comanda
-
-- Parsing
-    - [x] Obtinerea comenzii de la utilizator
-    - [x] Tokenizarea comenzii
-    - [x] Executarea comenzii, tinand cont de operatori
 
 - Piping
     - [x] Operatorul |
@@ -66,13 +61,13 @@ cd ../bin
         - Utilizare: cat logfile.txt | sort | uniq -c
 
 - Redirectionare
-    - [ ] Operatorul >
+    - [x] Operatorul >
         - Redirectioneaza output-ul catre o fila txt (overwrite) 
         - Utilizare: echo "Hello World!" > output.txt
-    - [ ] Operatorul >>
+    - [x] Operatorul >>
         - Redirectioneaza output-ul catre o fila txt (append)
         - Utilizare: echo "Hello World!" >> output.txt
-    - [ ] Operatorul <
+    - [x] Operatorul <
         - Preia input-ul dintr-o fila txt
         - Utilizare: sort < input.txt
 
@@ -95,8 +90,8 @@ cd ../bin
 - Sistemul de foldere
     - [x] pwd
     - [x] cd [path]
-    - [ ] cd -
-    - [ ] cd ~
+    - [x] cd -
+    - [x] ~
 
 - Comenzi custom
     - [x] quit 
@@ -121,7 +116,6 @@ cd ../bin
 - Extra
     - [x] Logo
     - [x] Culori (ANSI Escape Sequences)
-    - [ ] MultiFlesh
 
 - Variabile de mediu
 

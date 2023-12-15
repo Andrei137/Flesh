@@ -466,7 +466,7 @@ void Interface::run()
     {
         this->m_path = std::filesystem::current_path().string() + ">";
         this->m_command = get_command();
-        Interpreter::get_instance().evaluate_command(this->m_command);
+        Interpreter::get_instance().evaluate_command(this->m_command, this->m_path);
     }
 }
 
