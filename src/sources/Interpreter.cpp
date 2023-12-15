@@ -79,17 +79,13 @@ std::string Interpreter::modify_command(const std::string& a_old_command, bool a
 
     std::string modified_command{};
     const std::string* last_command{ HistoryManager::get_instance().get_instr(0) };
-    if (last_command == nullptr)
-    {
-        return a_old_command;
-    }
 
     for (int i = 0; i < static_cast<int>(a_old_command.size()); ++i)
     {
         if (a_old_command[i] == '!')
         {
             // If we have !!, we replace it with the last command
-            if (i + 1 < static_cast<int>(a_old_command.size()) && a_old_command[i + 1] == '!')
+            if (i + 1 < static_cast<int>(a_old_command.size()) && a_old_command[i + 1] == '!' && last_command != nullptr)
             {
                 modified_command += *last_command;
                 ++i;
@@ -616,6 +612,7 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_
             if (execvp(argv[0], argv) == -1)
             {
                 perror("Error executing command");
+                exit(1);
                 return 0;
             }
         }

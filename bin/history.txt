@@ -1,4 +1,1 @@
 quit
-python3
-cd ..
-git status
