@@ -102,7 +102,7 @@ std::string Interpreter::modify_command(const std::string& a_old_command, bool a
         // If we encounter !! we replace it with the last command
         else if(a_old_command[i] == '!' && i != static_cast<int>(a_old_command.size())-1 && a_old_command[i+1] == '!')
         {
-            modified_command += last_command;
+            modified_command += *last_command;
             i++;
         }
         // If we encounter ~ and before it is a space and after it is (nothing or space or /) we change it into home_path
