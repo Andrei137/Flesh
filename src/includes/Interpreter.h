@@ -18,7 +18,7 @@ class Interpreter
     // Current path, used for cd -
     std::string m_curr_path;
 
-    // If true, we will print a new line after each command 
+    // If true, we will print a new line after each command
     // So the terminal will look cleaner
     bool m_beautify;
 
@@ -82,7 +82,7 @@ class Interpreter
 
     // Checks if the given string is an operator
     bool is_operator(const std::string&);
-     
+
     // Finds the index of the operator which splits the command
     int current_operator(const std::vector<std::string>&);
 
@@ -94,9 +94,6 @@ class Interpreter
 
     // Function to evaluate the clear command
     int evaluate_clear();
-
-    // Function to evaluate the pwd command
-    int evaluate_pwd(int);
 
     // Function to evaluate the cd command
     int evaluate_cd(const std::vector<std::string>&, int, int, int);

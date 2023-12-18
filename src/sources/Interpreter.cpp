@@ -464,8 +464,13 @@ int Interpreter::evaluate_command(const std::vector<std::string>& a_tokens, int 
         {
             return separator(left, right, true);
         }
+
+        perror("Operator defined but not implemented");
+        perror(a_tokens[operator_idx].c_str());
+        perror("\n");
         return 0;
     }
+
     return evaluate_instr(a_tokens, a_fd_to_close, a_fd_to_dup);
 }
 
@@ -485,17 +490,6 @@ int Interpreter::evaluate_clear()
     Interface& interface{ Interface::get_instance() };
     interface.clear();
     interface.print_logo();
-    return 1;
-}
-
-int Interpreter::evaluate_pwd(int a_fd)
-{
-    std::string directory{ std::filesystem::current_path().string() };
-    directory[0] = toupper(directory[0]);
-
-    write(a_fd, directory.c_str(), directory.size());
-    write(a_fd, "\n", 1);
-
     return 1;
 }
 
@@ -656,10 +650,6 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_
     if (a_tokens[exec_idx] == "clear")
     {
         return evaluate_clear();
-    }
-    else if (a_tokens[exec_idx] == "pwd")
-    {
-        return evaluate_pwd(fd);
     }
     else if (a_tokens[exec_idx] == "cd")
     {
