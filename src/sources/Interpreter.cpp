@@ -82,21 +82,33 @@ std::string Interpreter::modify_command(const std::string& a_old_command, bool a
 
     for (int i = 0; i < static_cast<int>(a_old_command.size()); ++i)
     {
-        if (a_old_command[i] == '!')
+        // If we encounter an apostrophe, we continue until that apostrophe is closed
+        if(a_old_command[i] == '\'')
         {
-            // If we have !!, we replace it with the last command
-            if (i + 1 < static_cast<int>(a_old_command.size()) && a_old_command[i + 1] == '!' && last_command != nullptr)
+            ++i;
+            while (i < static_cast<int>(a_old_command.size()))
             {
-                modified_command += *last_command;
+                if (a_old_command[i] == '\'')
+                {
+                    break;
+                }
+                else
+                {
+                    modified_command += a_old_command[i];
+                }
                 ++i;
             }
-            else
-            {
-                modified_command += a_old_command[i];
-            }
         }
-        // If we have ~, we replace it with the home path
-        else if (a_old_command[i] == '~' && a_change_all)
+        // If we encounter !! we replace it with the last command
+        else if(a_old_command[i] == '!' && i != static_cast<int>(a_old_command.size())-1 && a_old_command[i+1] == '!')
+        {
+            modified_command += last_command;
+            i++;
+        }
+        // If we encounter ~ and before it is a space and after it is (nothing or space or /) we change it into home_path
+        else if(a_change_all && a_old_command[i]=='~' && i != 0 && a_old_command[i-1] == ' '
+            && (i == static_cast<int>(a_old_command.size())-1
+            || (i != static_cast<int>(a_old_command.size())-1 && (a_old_command[i+1]==' ' || a_old_command[i+1]=='/'))))
         {
             modified_command += home_path;
         }
@@ -154,7 +166,7 @@ int Interpreter::operator_pipe(const std::vector<std::string>& a_left, const std
 
             // Execute the left command
             int left_status{ evaluate_command(a_left) };
-                
+
             // We stop the grandson with an exit value equal to the opposite of Flesh implementation
             // i.e. if it was successful then we exit(0); if it failed then we exit(1)
             exit(!left_status);
@@ -543,7 +555,7 @@ int Interpreter::evaluate_cd(const std::vector<std::string>& a_tokens, int a_fd,
     {
         std::filesystem::current_path(new_path);
 
-        // If the current path is different from the new one, 
+        // If the current path is different from the new one,
         // we update the old path and the current path
         if (this->m_curr_path != new_path.string())
         {
@@ -674,7 +686,7 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_
         this->m_child_pid = fork();
 
         // We add the child process to the queue of background processes
-        this->m_background_processes.push(this->m_child_pid); 
+        this->m_background_processes.push(this->m_child_pid);
 
         if (this->m_child_pid == -1)
         {
