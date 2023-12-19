@@ -225,9 +225,6 @@ int Interpreter::operator_output(const std::vector<std::string>& a_left, const s
 
     pid_t child_pid{ fork() };
 
-    fprintf(stderr, "%d\n", child_pid);
-    fflush(stderr);
-
     if (child_pid < 0)
     {
         perror("Error forking\n");
