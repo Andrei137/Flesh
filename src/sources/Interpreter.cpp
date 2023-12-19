@@ -85,7 +85,7 @@ std::string Interpreter::modify_command(const std::string& a_old_command, bool a
         // If we encounter an apostrophe, we continue until that apostrophe is closed
         if (a_old_command[i] == '\'')
         {
-        	modified_command += a_old_command[i];
+            modified_command += a_old_command[i];
             ++i;
             while (i < static_cast<int>(a_old_command.size()))
             {
@@ -223,13 +223,47 @@ int Interpreter::operator_output(const std::vector<std::string>& a_left, const s
     // When we will call system call execvp, the program we start will write using destination_file_fd
     // dup2(destination_file_fd, 1);
 
-    // We execute the first command, which will write to the destination_file
-    int success_val{ evaluate_command(a_left, 1, destination_file_fd) };
+    pid_t child_pid{ fork() };
 
-    // Closing the file descriptor
+    fprintf(stderr, "%d\n", child_pid);
+    fflush(stderr);
+
+    if (child_pid < 0)
+    {
+        perror("Error forking\n");
+        return 0;
+    }
+
+    if (child_pid == 0)
+    {
+        dup2(destination_file_fd, 1);
+
+        // We execute the first command, which will append to the destination_file
+        int success_val{ evaluate_command(a_left) };
+
+        // Closing the file
+        close(destination_file_fd);
+
+        // Child will exit with return opposite to the success status (this is the convention we use)
+        exit(!success_val);
+    }
+
+    int status{};
+    int result{ waitpid(child_pid, &status, 0) };
+
     close(destination_file_fd);
 
-    return success_val;
+    if (result == -1)
+    {
+        perror("Error waiting for child process");
+        return 0;
+    }
+    if (WIFEXITED(status))
+    {
+        return !WEXITSTATUS(status);
+    }
+
+    return 0;
 }
 
 int Interpreter::operator_output_append(const std::vector<std::string>& a_left, const std::vector<std::string>& a_right)
@@ -243,7 +277,7 @@ int Interpreter::operator_output_append(const std::vector<std::string>& a_left, 
         return 0;
     }
 
-    // If the command is "> output.txt"
+    // If the command is ">> output.txt"
     if (a_left.empty())
     {
         fclose (destination_file);
@@ -259,11 +293,44 @@ int Interpreter::operator_output_append(const std::vector<std::string>& a_left, 
     // When we will call system call execvp, the program we start will write using fd
     // dup2(fd, 1);
 
-    // We execute the first command, which will append to the destination_file
-    int status{ evaluate_command(a_left, 1, fd) };
+    pid_t child_pid{ fork() };
+
+    if (child_pid < 0)
+    {
+        perror("Error forking\n");
+        return 0;
+    }
+
+    if (child_pid == 0)
+    {
+        dup2(fd, 1);
+
+        // We execute the first command, which will append to the destination_file
+        int success_val{ evaluate_command(a_left) };
+
+        // Closing the file
+        fclose(destination_file);
+
+        // Child will exit with return opposite to the success status (this is the convention we use)
+        exit(!success_val);
+    }
+
+    int status{};
+    int result{ waitpid(child_pid, &status, 0) };
 
     fclose(destination_file);
-    return status;
+
+    if (result == -1)
+    {
+        perror("Error waiting for child process");
+        return 0;
+    }
+    if (WIFEXITED(status))
+    {
+        return !WEXITSTATUS(status);
+    }
+
+    return 0;
 }
 
 int Interpreter::operator_input(const std::vector<std::string>& a_left, const std::vector<std::string>& a_right)
@@ -282,13 +349,44 @@ int Interpreter::operator_input(const std::vector<std::string>& a_left, const st
     // When we will call system call execvp, the program we start will read using source_file_fd
     // dup2(source_file_fd, 0);
 
-    // We execute the first command, which will take the input from source_file
-    int success_val{ evaluate_command(a_left, 0, source_file_fd) };
+    pid_t child_pid{ fork() };
 
-    // Closing the file descriptor
+    if (child_pid < 0)
+    {
+        perror("Error forking\n");
+        return 0;
+    }
+
+    if (child_pid == 0)
+    {
+        dup2(source_file_fd, 0);
+
+        // We execute the first command, which will take the input from source_file
+        int success_val{ evaluate_command(a_left) };
+
+        // Closing the file descriptor
+        close(source_file_fd);
+
+        // Child will exit with return opposite to the success status (this is the convention we use)
+        exit(!success_val);
+    }
+
+    int status{};
+    int result{ waitpid(child_pid, &status, 0) };
+
     close(source_file_fd);
 
-    return success_val;
+    if (result == -1)
+    {
+        perror("Error waiting for child process");
+        return 0;
+    }
+    if (WIFEXITED(status))
+    {
+        return !WEXITSTATUS(status);
+    }
+
+    return 0;
 }
 
 int Interpreter::operator_and(const std::vector<std::string>& a_left, const std::vector<std::string>& a_right)
@@ -400,6 +498,7 @@ int Interpreter::current_operator(const std::vector<std::string>& a_tokens)
             }
         }
     }
+
     return operator_idx;
 }
 
@@ -465,7 +564,7 @@ int Interpreter::evaluate_command(const std::vector<std::string>& a_tokens, int 
             return separator(left, right, true);
         }
 
-        perror("Operator defined but not implemented");
+        perror("Operator defined but not implemented ");
         perror(a_tokens[operator_idx].c_str());
         perror("\n");
         return 0;
