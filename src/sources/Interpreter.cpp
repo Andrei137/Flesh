@@ -284,9 +284,6 @@ int Interpreter::operator_output_append(const std::vector<std::string>& a_left, 
         return 1;
     }
 
-    // File descriptor for the destination file
-    int fd{ fileno(destination_file) };
-
     // Closes the file descriptor with id=1, which is stdout
     // and creates a copy for fd, and then assign to it id=1
     // The old descriptor is not closed! Both may be used interchangeably
@@ -303,6 +300,9 @@ int Interpreter::operator_output_append(const std::vector<std::string>& a_left, 
 
     if (child_pid == 0)
     {
+        // File descriptor for the destination file
+        int fd{ fileno(destination_file) };
+
         dup2(fd, 1);
 
         // We execute the first command, which will append to the destination_file
