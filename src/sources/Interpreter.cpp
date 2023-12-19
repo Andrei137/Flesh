@@ -83,32 +83,29 @@ std::string Interpreter::modify_command(const std::string& a_old_command, bool a
     for (int i = 0; i < static_cast<int>(a_old_command.size()); ++i)
     {
         // If we encounter an apostrophe, we continue until that apostrophe is closed
-        if(a_old_command[i] == '\'')
+        if (a_old_command[i] == '\'')
         {
+        	modified_command += a_old_command[i];
             ++i;
             while (i < static_cast<int>(a_old_command.size()))
             {
+                modified_command += a_old_command[i];
                 if (a_old_command[i] == '\'')
                 {
                     break;
-                }
-                else
-                {
-                    modified_command += a_old_command[i];
                 }
                 ++i;
             }
         }
         // If we encounter !! we replace it with the last command
-        else if(a_old_command[i] == '!' && i != static_cast<int>(a_old_command.size())-1 && a_old_command[i+1] == '!')
+        else if (a_old_command[i] == '!' && i + 1 != static_cast<int>(a_old_command.size()) && a_old_command[i + 1] == '!')
         {
             modified_command += *last_command;
             i++;
         }
         // If we encounter ~ and before it is a space and after it is (nothing or space or /) we change it into home_path
-        else if(a_change_all && a_old_command[i]=='~' && i != 0 && a_old_command[i-1] == ' '
-            && (i == static_cast<int>(a_old_command.size())-1
-            || (i != static_cast<int>(a_old_command.size())-1 && (a_old_command[i+1]==' ' || a_old_command[i+1]=='/'))))
+        else if (a_change_all && a_old_command[i]=='~' && i != 0 && a_old_command[i - 1] == ' '
+            && (i + 1 == static_cast<int>(a_old_command.size()) || a_old_command[i + 1] == ' ' || a_old_command[i + 1] == '/'))
         {
             modified_command += home_path;
         }
@@ -117,6 +114,7 @@ std::string Interpreter::modify_command(const std::string& a_old_command, bool a
             modified_command += a_old_command[i];
         }
     }
+
     return modified_command;
  }
 
@@ -341,7 +339,7 @@ bool Interpreter::is_operator(const std::string& a_operator)
     return false;
 }
 
-// We find the least important operator and return its index
+// We find the operator with the highest priority and return its index
 // The priorities are: |, >, >>, <, &&, ||, ;, &
 // | has right-to-left associativity
 // The rest have left-to-right associativity
@@ -405,6 +403,8 @@ int Interpreter::current_operator(const std::vector<std::string>& a_tokens)
     return operator_idx;
 }
 
+// Changes the file descriptors (See "man dup2" and README.md for more), splits the command according
+// to current_operator and executes the commands recursively
 int Interpreter::evaluate_command(const std::vector<std::string>& a_tokens, int a_fd_to_close, int a_fd_to_dup)
 {
     if (a_tokens.size() == 0u || Interface::get_instance().is_aborted())

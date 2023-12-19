@@ -88,7 +88,6 @@ cd ../bin
         - Utilizare: echo "Hello World 1!" & sleep 10 & echo "Hello World 2!"
 
 - Sistemul de foldere
-    - [x] pwd
     - [x] cd [path]
     - [x] cd -
     - [x] ~

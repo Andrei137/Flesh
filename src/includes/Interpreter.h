@@ -83,10 +83,11 @@ class Interpreter
     // Checks if the given string is an operator
     bool is_operator(const std::string&);
 
-    // Finds the index of the operator which splits the command
+    // Finds the index of the operator which splits the command (the operator with the highest priority)
     int current_operator(const std::vector<std::string>&);
 
-    // Finds the operator according to which we split the command
+    // Changes the file descriptors (See "man dup2" and README.md for more), splits the command according
+    // to current_operator and executes the commands recursively
     int evaluate_command(const std::vector<std::string>&, int a_fd_to_close = -1, int a_fd_to_dup = -1);
 
     // Function to evaluate the exit and quit commands
@@ -106,7 +107,7 @@ class Interpreter
     int evaluate_instr(const std::vector<std::string>&, int a_fd_to_close = -1, int a_fd_to_dup = -1);
 
 public:
-    void evaluate_command(const std::string&,const std::string&);
+    void evaluate_command(const std::string&, const std::string&);
 
     static Interpreter& get_instance();
 };
