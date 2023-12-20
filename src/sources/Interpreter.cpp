@@ -771,9 +771,6 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_
 
         this->m_child_pid = fork();
 
-        // We add the child process to the queue of background processes
-        this->m_background_processes.push(this->m_child_pid);
-
         if (this->m_child_pid == -1)
         {
             perror("Error forking");
@@ -791,9 +788,12 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_
             {
                 perror("Error executing command");
                 exit(1);
-                return 0;
             }
         }
+
+        // We add the child process to the queue of background processes
+        this->m_background_processes.push(this->m_child_pid);
+
         delete[] argv; // We don't need argv anymore, so we free the memory
         if (!this->m_is_background) // No separator &, so we wait for the child process to finish
         {
