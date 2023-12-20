@@ -867,3 +867,4 @@ Interpreter& Interpreter::get_instance()
     static Interpreter interpreter;
     return interpreter;
 }
+
