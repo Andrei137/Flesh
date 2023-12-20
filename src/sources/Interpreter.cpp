@@ -1,5 +1,5 @@
 // Neculae Andrei-Fabian
-// Dumitru Ilie
+// Ilie Dumitru
 // Buzatu Giulian
 
 #include "HistoryManager.h"
@@ -98,13 +98,13 @@ std::string Interpreter::modify_command(const std::string& a_old_command, bool a
             }
         }
         // If we encounter !! we replace it with the last command
-        else if (a_old_command[i] == '!' && i + 1 != static_cast<int>(a_old_command.size()) && a_old_command[i + 1] == '!')
+        else if (a_old_command[i] == '!' && i + 1 != static_cast<int>(a_old_command.size()) && a_old_command[i + 1] == '!' && last_command != nullptr)
         {
             modified_command += *last_command;
             i++;
         }
         // If we encounter ~ and before it is a space and after it is (nothing or space or /) we change it into home_path
-        else if (a_change_all && a_old_command[i]=='~' && i != 0 && a_old_command[i - 1] == ' '
+        else if (a_change_all && a_old_command[i]=='~' && (i == 0 || a_old_command[i - 1] == ' ')
             && (i + 1 == static_cast<int>(a_old_command.size()) || a_old_command[i + 1] == ' ' || a_old_command[i + 1] == '/'))
         {
             modified_command += home_path;
