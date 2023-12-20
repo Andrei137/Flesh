@@ -786,6 +786,7 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_
                 dup2(a_fd_to_dup, a_fd_to_close);
             }
 
+            Interface::get_instance().config_terminal(false);
             if (execvp(argv[0], argv) == -1)
             {
                 perror("Error executing command");
@@ -798,6 +799,7 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_
         {
             int status{};
             int result{ waitpid(this->m_child_pid, &status, 0) };
+            Interface::get_instance().config_terminal(false);
             if (result == -1)
             {
                 perror("Error waiting for child process");
