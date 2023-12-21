@@ -6,6 +6,7 @@
 #include "Interface.h"
 #include "Interpreter.h"
 #include "Tokenizer.h"
+#include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
 #include <filesystem>
@@ -16,6 +17,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+// Constructor
 Interpreter::Interpreter() : m_old_path()
 {
     // Register the signal handlers
@@ -26,7 +28,8 @@ Interpreter::Interpreter() : m_old_path()
 
 // Handles Ctrl + C's signal (SIGINT)
 // If the child process is still running, it is killed
-// Else, the program exits
+// Else the program exits
+// TODO: Kill all background processes
 void Interpreter::handle_sigint(int)
 {
     std::cout << "^C\n";
@@ -41,7 +44,7 @@ void Interpreter::handle_sigint(int)
         Interface& interface{ Interface::get_instance() };
         interface.abort();
         interface.config_terminal(false);
-        exit(0);
+        exit(EXIT_SUCCESS);
     }
 }
 
@@ -53,7 +56,7 @@ void Interpreter::handle_sigquit(int)
     interface.abort();
     interface.config_terminal(false);
     interface.clear();
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 
 // Handles Ctrl + Z's signal (SIGTSTP)
@@ -118,6 +121,7 @@ std::string Interpreter::modify_command(const std::string& a_old_command, bool a
     return modified_command;
  }
 
+// PIPE operator (|) handler. See declaration
 int Interpreter::operator_pipe(const std::vector<std::string>& a_left, const std::vector<std::string>& a_right)
 {
     // We create the child from Flesh, that will execute the two commands that have the pipe operator between them
@@ -125,7 +129,7 @@ int Interpreter::operator_pipe(const std::vector<std::string>& a_left, const std
     if (son < 0)
     {
         perror("Error at fork");
-        return 0;
+        return EXIT_FAILURE;
     }
 
     if (son == 0)
@@ -160,14 +164,15 @@ int Interpreter::operator_pipe(const std::vector<std::string>& a_left, const std
 
             // Redirect stdout to the write end of the pipe
             dup2(fd[1], STDOUT_FILENO);
+            // TODO: Why is this here? What effect does it have?
+            //       Why do we close it after we dup it
             close(fd[1]);
 
             // Execute the left command
             int left_status{ evaluate_command(a_left) };
 
-            // We stop the grandson with an exit value equal to the opposite of Flesh implementation
-            // i.e. if it was successful then we exit(0); if it failed then we exit(1)
-            exit(!left_status);
+            // We stop the grandson with the exit value of the left command
+            exit(left_status);
         }
 
         // Child code for the right command
@@ -177,28 +182,40 @@ int Interpreter::operator_pipe(const std::vector<std::string>& a_left, const std
 
         // Redirect stdin to the read end of the pipe
         dup2(fd[0], STDIN_FILENO);
+        // TODO: Why is this here? What effect does it have?
+        //       Why do we close it after we dup it?
         close(fd[0]);
 
-        // Execute the right command
-        evaluate_command(a_right);
-
+        // Wait for the left command to finish then get the
+        // status of the left command
         int status;
         waitpid(grandson, &status, WUNTRACED);
-        int grandson_return{ WEXITSTATUS(status) };
+        int left_command_status{ WEXITSTATUS(status) };
 
-        exit(grandson_return);
+        // If the left command did not execute successfully
+        if (left_command_status != EXIT_SUCCESS)
+        {
+            // Exit with the exit status of the left command
+            exit(left_command_status);
+        }
+
+        // Execute the right command
+        int right_status{ evaluate_command(a_right) };
+
+        // Exit with the exit status of the right command
+        exit(right_status);
     }
 
     // Flesh code.
 
-    // Wait for the son to complete
+    // Wait for the right command to finish then get the status
+    // of the right command
     int status{};
     waitpid(son, &status, WUNTRACED);
-    int son_return{ WEXITSTATUS(status) };
+    int overall_status{ WEXITSTATUS(status) };
 
-    // Return a success value equal to the opposite of son exit value
-    // i.e., if it was successful, then we return 1; if it failed, then we return 0
-    return !son_return;
+    // Return the exit code of the right command
+    return overall_status;
 }
 
 int Interpreter::operator_output(const std::vector<std::string>& a_left, const std::vector<std::string>& a_right)

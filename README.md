@@ -117,6 +117,7 @@ cd ../bin
     - [x] Culori (ANSI Escape Sequences)
 
 - Variabile de mediu
+    - [ ] $
 
 ---
 

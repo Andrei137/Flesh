@@ -58,6 +58,8 @@ class Interpreter
     // This function replaces !! and ~. If the second parameter is true then
     // both !! and ~ will be replaced. Otherwise only !! will be replaced.
     // TODO: split this function into 2 different functions.
+    // TODO: after this function is split in 2 functions add a function
+    //       to replace environment variables
     std::string modify_command(const std::string&, bool);
 
     // Handler for PIPE(|) operator. The output of the left command is the
