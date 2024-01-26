@@ -121,7 +121,6 @@ std::string Interpreter::modify_command(const std::string& a_old_command, bool a
     return modified_command;
  }
 
-// PIPE operator (|) handler. See declaration
 int Interpreter::operator_pipe(const std::vector<std::string>& a_left, const std::vector<std::string>& a_right)
 {
     // We create the child from Flesh, that will execute the two commands that have the pipe operator between them
@@ -186,24 +185,14 @@ int Interpreter::operator_pipe(const std::vector<std::string>& a_left, const std
         //       Why do we close it after we dup it?
         close(fd[0]);
 
-        // Wait for the left command to finish then get the
-        // status of the left command
-        int status;
+        evaluate_command(a_right);
+
+        int status{};
         waitpid(grandson, &status, WUNTRACED);
-        int left_command_status{ WEXITSTATUS(status) };
-
-        // If the left command did not execute successfully
-        if (left_command_status != EXIT_SUCCESS)
-        {
-            // Exit with the exit status of the left command
-            exit(left_command_status);
-        }
-
-        // Execute the right command
-        int right_status{ evaluate_command(a_right) };
+        int overall_status{ WEXITSTATUS(status) };
 
         // Exit with the exit status of the right command
-        exit(right_status);
+        exit(overall_status);
     }
 
     // Flesh code.
@@ -212,10 +201,10 @@ int Interpreter::operator_pipe(const std::vector<std::string>& a_left, const std
     // of the right command
     int status{};
     waitpid(son, &status, WUNTRACED);
-    int overall_status{ WEXITSTATUS(status) };
+    int son_return{ WEXITSTATUS(status) };
 
     // Return the exit code of the right command
-    return overall_status;
+    return son_return;
 }
 
 int Interpreter::operator_output(const std::vector<std::string>& a_left, const std::vector<std::string>& a_right)
@@ -373,7 +362,7 @@ int Interpreter::operator_input(const std::vector<std::string>& a_left, const st
 
     if (child_pid == 0)
     {
-        dup2(source_file_fd, 0);
+        dup2(source_file_fd, STDIN_FILENO);
 
         // We execute the first command, which will take the input from source_file
         int success_val{ evaluate_command(a_left) };
@@ -800,7 +789,6 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_
                 dup2(a_fd_to_dup, a_fd_to_close);
             }
 
-            Interface::get_instance().config_terminal(false);
             if (execvp(argv[0], argv) == -1)
             {
                 perror("Error executing command");
@@ -816,7 +804,6 @@ int Interpreter::evaluate_instr(const std::vector<std::string>& a_tokens, int a_
         {
             int status{};
             int result{ waitpid(this->m_child_pid, &status, 0) };
-            Interface::get_instance().config_terminal(false);
             if (result == -1)
             {
                 perror("Error waiting for child process");
