@@ -189,10 +189,10 @@ int Interpreter::operator_pipe(const std::vector<std::string>& a_left, const std
 
         int status{};
         waitpid(grandson, &status, WUNTRACED);
-        int overall_status{ WEXITSTATUS(status) };
+        int right_status{ WEXITSTATUS(status) };
 
         // Exit with the exit status of the right command
-        exit(overall_status);
+        exit(right_status);
     }
 
     // Flesh code.
@@ -201,10 +201,10 @@ int Interpreter::operator_pipe(const std::vector<std::string>& a_left, const std
     // of the right command
     int status{};
     waitpid(son, &status, WUNTRACED);
-    int son_return{ WEXITSTATUS(status) };
+    int overall_status{ WEXITSTATUS(status) };
 
     // Return the exit code of the right command
-    return son_return;
+    return overall_status;
 }
 
 int Interpreter::operator_output(const std::vector<std::string>& a_left, const std::vector<std::string>& a_right)
