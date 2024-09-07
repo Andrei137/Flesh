@@ -1,7 +1,7 @@
 // Ilie Dumitru
 // Neculae Andrei-Fabian
 
-#include "Color.h"
+#include "TerminalModifier.h"
 #include "HistoryManager.h"
 #include "Interface.h"
 #include "Interpreter.h"
@@ -21,6 +21,7 @@
 #define CTRL_D 4
 #define ESCAPE 27
 #define ONE 49
+#define THREE 51
 #define FIVE 53
 #define SEMICOLON 59
 #define UP_ARROW 65
@@ -30,7 +31,7 @@
 #define RIGHT_SQUARE_BRACKET 91
 #define BACKSPACE 127
 
-Interface::Interface() : m_aborted(false) 
+Interface::Interface() : m_aborted(false)
 {
     // Get an instance of HistoryManager to initialize the location of the history file
     HistoryManager::get_instance();
@@ -42,7 +43,7 @@ Interface::Interface() : m_aborted(false)
 void Interface::refresh_display(int a_cursor_position) const
 {
     // Move to the beginning of the line, printing the path and the command again
-    std::cout << "\r" << Color::BLUE << this->m_path << Color::DEFAULT << this->m_command << "\033[K";
+    std::cout << "\r" << TerminalModifier::FG_BLUE << this->m_path << TerminalModifier::FG_DEFAULT << this->m_command << "\033[K";
 
     // Move cursor to the correct position
     std::cout << "\033[" << a_cursor_position + this->m_path.size() + 1 << "G";
@@ -56,7 +57,7 @@ void Interface::handle_arrow_keys(char a_arrow_key, int& a_cursor_position, int&
     if (a_arrow_key == UP_ARROW) // Up Arrow pressed, move to the next command if possible
     {
         const std::string* command{ HistoryManager::get_instance().get_instr(a_history_position + 1) };
-        
+
         if (command != nullptr)
         {
             // We didn't hit the history limit so just get that command
@@ -83,7 +84,7 @@ void Interface::handle_arrow_keys(char a_arrow_key, int& a_cursor_position, int&
     }
     else if (a_arrow_key == RIGHT_ARROW) // Right Arrow pressed, move cursor to the right if possible
     {
-        if (a_cursor_position < static_cast<int>(this->m_command.size())) 
+        if (a_cursor_position < static_cast<int>(this->m_command.size()))
         {
             ++a_cursor_position;
             refresh_display(a_cursor_position);
@@ -91,7 +92,7 @@ void Interface::handle_arrow_keys(char a_arrow_key, int& a_cursor_position, int&
     }
     else  // Left Arrow pressed, move cursor to the left if possible
     {
-        if (a_cursor_position > 0) 
+        if (a_cursor_position > 0)
         {
             --a_cursor_position;
             refresh_display(a_cursor_position);
@@ -147,12 +148,22 @@ void Interface::handle_ctrl_arrow_keys(char a_arrow_key, int& a_cursor_position)
 }
 
 // Simulates backspace (as it was disabled by config_terminal)
-void Interface::handle_backspace(int& a_cursor_position) 
+void Interface::handle_backspace(int& a_cursor_position)
 {
-    if (a_cursor_position > 0) 
+    if (a_cursor_position > 0)
     {
         this->m_command.erase(a_cursor_position - 1, 1);
         --a_cursor_position;
+        refresh_display(a_cursor_position);
+    }
+}
+
+// Simulates delete
+void Interface::handle_delete_key(int& a_cursor_position)
+{
+    if(a_cursor_position < static_cast<int>(this->m_command.size()))
+    {
+        this->m_command.erase(a_cursor_position, 1);
         refresh_display(a_cursor_position);
     }
 }
@@ -195,7 +206,7 @@ std::string Interface::get_command()
         {
             curr_ch = getchar();
             // Check for the '[' character
-            if (curr_ch == RIGHT_SQUARE_BRACKET) 
+            if (curr_ch == RIGHT_SQUARE_BRACKET)
             {
                 curr_ch = getchar();
                 // Check for arrow keys
@@ -203,6 +214,15 @@ std::string Interface::get_command()
                 {
                     handle_arrow_keys(curr_ch, cursor_position, history_position);
                 }
+                // Check for delete
+                else if(curr_ch == THREE)
+                {
+					curr_ch = getchar();
+					if(curr_ch == '~')
+					{
+						handle_delete_key(cursor_position);
+					}
+				}
                 // Check For Ctrl + Left / Right Arrow Key
                 else if (curr_ch == ONE)
                 {
@@ -235,7 +255,7 @@ std::string Interface::get_command()
             int last_space{ static_cast<int>(m_command.rfind(' ', cursor_position - 1)) - 1 };
             m_command.erase(0, 1);
             std::string path{ m_command.substr(last_space + 1, cursor_position - last_space - 1) };
-            
+
             // If it has / in it, it is most likely a path or the command has cd in it
             if (path.find('/') != std::string::npos)
             {
@@ -250,7 +270,7 @@ std::string Interface::get_command()
                     // The directory doesn't exist, so we can't autocomplete
                     continue;
                 }
-                
+
                 // Get all the files from the directory
                 std::vector<std::string> files{};
                 for (const auto& file : std::filesystem::directory_iterator(directory))
@@ -337,7 +357,7 @@ std::string Interface::get_command()
                     }
                 }
             }
-        
+
         }
         // Finalize the command when the user presses enter
         // \r for when we enter Python
@@ -396,7 +416,7 @@ int Interface::config_terminal(bool a_change) const
     memset(&ttystate, 0, sizeof(ttystate));
 
     // Get the current terminal state
-    if (tcgetattr(STDIN_FILENO, &ttystate) == -1) 
+    if (tcgetattr(STDIN_FILENO, &ttystate) == -1)
     {
         perror("Error getting terminal attributes");
         return errno;
@@ -415,12 +435,12 @@ int Interface::config_terminal(bool a_change) const
     }
 
     // Apply the new settings
-    if (tcsetattr(STDIN_FILENO, TCSANOW, &ttystate) == -1) 
+    if (tcsetattr(STDIN_FILENO, TCSANOW, &ttystate) == -1)
     {
         perror("Error setting terminal attributes");
         return errno;
     }
-    
+
     return 0;
 }
 
@@ -452,35 +472,35 @@ void Interface::print_logo()
 
     for (auto ch : flesh_logo)
     {
-        std::cout << Color::BG_DEFAULT;
+        std::cout << TerminalModifier::BG_DEFAULT;
         if (ch == '%')
         {
-            std::cout << Color::GREEN << ch;
+            std::cout << TerminalModifier::FG_GREEN << ch;
         }
         else if (ch == '#' || ch == '.')
         {
-            std::cout << Color::DARK_GRAY << ch;
+            std::cout << TerminalModifier::FG_DARK_GRAY << ch;
         }
         else if (ch == '+' || ch == '*')
         {
-            std::cout << Color::LIGHT_RED << ch;
+            std::cout << TerminalModifier::FG_LIGHT_RED << ch;
         }
         else if (ch == '@' || ch == '=' || ch == '-' || ch == ':')
         {
-            std::cout << Color::RED << ch;
+            std::cout << TerminalModifier::FG_RED << ch;
         }
         else
         {
-            std::cout << Color::MAGENTA << ch;
+            std::cout << TerminalModifier::FG_MAGENTA << ch;
         }
     }
-    std::cout << Color::DEFAULT;
+    std::cout << TerminalModifier::FG_DEFAULT;
 }
 
 void Interface::run()
 {
     print_logo();
-    
+
     while (!this->m_aborted)
     {
         this->m_path = std::filesystem::current_path().string() + ">";

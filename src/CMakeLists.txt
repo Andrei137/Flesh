@@ -85,11 +85,11 @@ endfunction()
 
 # NOTE: update executable name in .github/workflows/cmake.yml:25 when changing name here
 add_executable(
-    ${PROJECT_NAME} 
-    Main.cpp 
-    sources/Color.cpp
-    sources/HistoryManager.cpp 
-    sources/Interface.cpp 
+    ${PROJECT_NAME}
+    Main.cpp
+    sources/TerminalModifier.cpp
+    sources/HistoryManager.cpp
+    sources/Interface.cpp
     sources/Interpreter.cpp
     sources/Tokenizer.cpp
 )

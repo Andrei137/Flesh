@@ -1,8 +1,8 @@
 // Neculae Andrei-Fabian
 
-#include "Color.h"
+#include "TerminalModifier.h"
 
-namespace Color
+namespace TerminalModifier
 {
     Modifier::Modifier(int a_code) : m_code(a_code) {}
 

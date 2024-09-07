@@ -34,6 +34,9 @@ class Interface
     // Handles the Ctrl + arrow keys' functionality
     void handle_ctrl_arrow_keys(char, int&);
 
+	// Handles the delete key's functionality
+    void handle_delete_key(int&);
+
     // Handles the backspace key's functionality
     void handle_backspace(int&);
 
@@ -42,7 +45,7 @@ class Interface
 
     // Evaluates the command and acts accordingly
     void evaluate_command();
-    
+
 public:
     // If the user gives some kind of kill command
     // We set m_aborted to true
